@@ -1,0 +1,2 @@
+-- Local development seed data belongs here.
+-- Production data is intentionally not inserted from this file.
