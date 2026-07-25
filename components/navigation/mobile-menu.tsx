@@ -42,6 +42,7 @@ export function MobileMenu() {
           id={menuId}
           aria-label="Mobile navigation"
           className="fixed inset-x-0 bottom-0 top-16 z-[60] border-t border-border bg-[#06111d] px-4 py-6 shadow-2xl"
+          style={{ backgroundColor: "#06111d" }}
         >
           <div className="mx-auto max-w-lg space-y-2">
             {links.map(({ label, href, icon: Icon }) => (
