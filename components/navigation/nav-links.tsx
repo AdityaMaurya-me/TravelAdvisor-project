@@ -1,23 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-const NAV_ITEMS = [
-  { label: "Home", href: "/" },
-  { label: "Collections", href: "/collections" },
-  { label: "Community", href: "/community" },
-  { label: "Curate", href: "/curation/locations" },
-  { label: "About", href: "/about" },
-] as const;
+import { usePathname, useRouter } from "next/navigation";
+import { getNavSection, getSectionDestination, NAV_SECTIONS, type NavSection } from "@/lib/navigation/section-memory";
 
 export function NavLinks() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <nav className="hidden items-center gap-8 md:flex">
-      {NAV_ITEMS.map((item) => {
-        const active = pathname === item.href;
+      {(Object.entries(NAV_SECTIONS) as [NavSection, typeof NAV_SECTIONS[NavSection]][]).map(([section, item]) => {
+        const active = getNavSection(pathname) === section;
 
         const className = `
               relative pb-1 text-sm font-medium transition-colors duration-200
@@ -33,13 +26,15 @@ export function NavLinks() {
             `;
 
         return (
-          <Link
-            key={item.href}
-            href={item.href}
+          <button
+            key={section}
+            type="button"
+            aria-current={active ? "page" : undefined}
+            onClick={() => router.push(getSectionDestination(section, pathname))}
             className={className}
           >
             {item.label}
-          </Link>
+          </button>
         );
       })}
     </nav>

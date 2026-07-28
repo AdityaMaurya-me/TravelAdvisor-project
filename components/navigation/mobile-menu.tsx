@@ -1,21 +1,23 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import Link from "next/link";
+import { createPortal } from "react-dom";
 import { Compass, FolderHeart, Home, Info, Menu, MessageCircle, X } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { getNavSection, getSectionDestination, type NavSection } from "@/lib/navigation/section-memory";
 
 const links = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Collections", href: "/collections", icon: FolderHeart },
-  { label: "Community", href: "/community", icon: MessageCircle },
-  { label: "Curate", href: "/curation/locations", icon: Compass },
-  { label: "About", href: "/about", icon: Info },
+  { section: "home", label: "Home", icon: Home },
+  { section: "collections", label: "Collections", icon: FolderHeart },
+  { section: "community", label: "Community", icon: MessageCircle },
+  { section: "curate", label: "Curate", icon: Compass },
+  { section: "about", label: "About", icon: Info },
 ] as const;
 
 export function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const menuId = useId();
 
   useEffect(() => { setIsOpen(false); }, [pathname]);
@@ -37,7 +39,7 @@ export function MobileMenu() {
       >
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
-      {isOpen && (
+      {isOpen && createPortal(
         <nav
           id={menuId}
           aria-label="Mobile navigation"
@@ -45,24 +47,24 @@ export function MobileMenu() {
           style={{ backgroundColor: "#06111d" }}
         >
           <div className="mx-auto max-w-lg space-y-2">
-            {links.map(({ label, href, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setIsOpen(false)}
-                aria-current={pathname === href ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-4 py-4 text-base font-medium transition ${pathname === href ? "bg-cyan-400/10 text-cyan-200" : "text-foreground hover:bg-accent"}`}
+            {links.map(({ section, label, icon: Icon }) => (
+              <button
+                key={section}
+                type="button"
+                onClick={() => { router.push(getSectionDestination(section as NavSection, pathname)); setIsOpen(false); }}
+                aria-current={getNavSection(pathname) === section ? "page" : undefined}
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-4 text-left text-base font-medium transition ${getNavSection(pathname) === section ? "bg-cyan-400/10 text-cyan-200" : "text-foreground hover:bg-accent"}`}
               >
                 <Icon className="h-5 w-5" />
                 {label}
-              </Link>
+              </button>
             ))}
           </div>
           <p className="mx-auto mt-8 max-w-lg px-4 text-sm text-muted-foreground">
             Notifications and profile controls remain available in the top-right corner.
           </p>
         </nav>
-      )}
+      , document.body)}
     </div>
   );
 }

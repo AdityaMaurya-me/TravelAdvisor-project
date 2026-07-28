@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getDestinationMapMarkers, type DetailMapMarker } from "@/lib/data/detail-maps";
 
 export type DestinationFactIcon =
   | "route"
@@ -52,6 +53,7 @@ export interface DestinationDetail {
   categories: DestinationCategory[];
   routePlaces: PlacePreview[];
   communityFavorites: PlacePreview[];
+  mapPlaces: DetailMapMarker[];
   routeHref?: string;
 }
 
@@ -167,12 +169,15 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
   });
 
   const allChildren = (children ?? []).map(toPreview);
-  const { data: route } = await supabase
+  const [{ data: route }, mapPlaces] = await Promise.all([
+    supabase
     .from("routes")
     .select("slug")
     .eq("end_place_id", place.id)
     .limit(1)
-    .maybeSingle();
+    .maybeSingle(),
+    getDestinationMapMarkers(place.id),
+  ]);
 
   return {
     slug: place.slug,
@@ -190,6 +195,7 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     categories,
     routePlaces: allChildren.slice(0, 4),
     communityFavorites: allChildren.slice(0, 4),
+    mapPlaces,
     routeHref: route ? `/route/${route.slug}` : undefined,
   };
 }

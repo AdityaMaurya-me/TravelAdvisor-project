@@ -17,7 +17,7 @@ import { LocationRequestEditButton } from "@/components/sections/curation/locati
 type Destination = { id: string; name: string; slug: string };
 type Candidate = { id: string; created_by: string; name: string; source: string; status: string; created_at: string; proposed_categories: string[]; destination_id: string | null; source_url: string | null; source_reference: string | null; latitude: number | null; longitude: number | null; description: string | null; image_url: string | null; image_attribution: string | null; review_notes: string | null; destination: { name: string } | null };
 
-const emptyForm = { name: "", destinationId: "", source: "openstreetmap", sourceUrl: "", sourceReference: "", latitude: "", longitude: "", categories: "", description: "", imageUrl: "", imageAttribution: "", openingHours: "", entryFee: "", websiteUrl: "", phone: "", hasParking: false, hasWashroom: false, isPetFriendly: false };
+const emptyForm = { name: "", destinationId: "", source: "openstreetmap", sourceUrl: "", sourceReference: "", latitude: "", longitude: "", categories: "", description: "", imageUrl: "", imageAttribution: "", openingHours: "", entryFee: "", websiteUrl: "", phone: "", hasParking: false, hasWashroom: false, hasEvCharging: false, isPetFriendly: false, typicalVisitMinutes: "" };
 
 export function LocationCurationPage() {
   const { requireAuth } = useAuthModal();
@@ -90,7 +90,9 @@ export function LocationCurationPage() {
       phone: form.phone.trim() || null,
       has_parking: form.hasParking,
       has_washroom: form.hasWashroom,
+      has_ev_charging: form.hasEvCharging ? true : null,
       is_pet_friendly: form.isPetFriendly,
+      typical_visit_minutes: form.typicalVisitMinutes ? Number(form.typicalVisitMinutes) : null,
     });
     setIsSaving(false);
     if (error) { setMessage(error.message); return; }

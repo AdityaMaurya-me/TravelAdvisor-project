@@ -213,6 +213,27 @@
 }
 
 @layer utilities {
+  .travel-map-marker {
+    display: grid;
+    height: 2rem;
+    width: 2rem;
+    place-items: center;
+    border: 2px solid rgb(255 255 255 / 0.88);
+    border-radius: 9999px;
+    background: #06b6d4;
+    color: #062033;
+    box-shadow: 0 8px 18px rgb(4 19 33 / 0.65);
+    font-size: 1rem;
+    line-height: 1;
+    transition: transform 160ms ease, background-color 160ms ease;
+  }
+
+  .travel-map-marker:hover,
+  .travel-map-marker:focus-visible {
+    background: #67e8f9;
+    transform: scale(1.16);
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;

@@ -1,5 +1,6 @@
 import type { PlacePreview } from "@/lib/mock-data/destinations";
 import { createClient } from "@/lib/supabase/server";
+import { getPlaceMapMarker, type DetailMapMarker } from "@/lib/data/detail-maps";
 
 export type PlaceFactIcon = "sunrise" | "ticket" | "clock" | "timer" | "camera";
 
@@ -21,6 +22,7 @@ export interface PlaceDetail {
   facts: PlaceFact[];
   verifiedInfo: { openingHours?: string; entryFee?: string; websiteUrl?: string; phone?: string; sourceUrl?: string; sourceReference?: string; lastVerifiedAt?: string; hasParking?: boolean | null; hasWashroom?: boolean | null; isPetFriendly?: boolean | null };
   nearbyPlaces: PlacePreview[];
+  mapMarker: DetailMapMarker | null;
 }
 
 /**
@@ -80,6 +82,8 @@ export async function getPlaceBySlug(
       })
     : [];
 
+  const mapMarker = await getPlaceMapMarker(place.id);
+
   return {
     id: place.id,
     slug: place.slug,
@@ -91,5 +95,6 @@ export async function getPlaceBySlug(
     facts,
     verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly },
     nearbyPlaces,
+    mapMarker,
   };
 }

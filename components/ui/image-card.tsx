@@ -1,6 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ReactNode } from "react";
+
+import { PlacePhoto } from "@/components/ui/place-photo";
 
 interface ImageCardProps {
   href: string;
@@ -44,10 +45,11 @@ export function ImageCard({
       <div
         className={`relative overflow-hidden ${aspectRatioClasses[aspectRatio]}`}
       >
-        <Image
+        <PlacePhoto
           src={image}
           alt={alt}
-          fill
+          query={alt}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           className="
             object-cover
             transition-transform

@@ -4,6 +4,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { DestinationCategoryGrid } from "@/components/sections/destination/destination-category-grid";
 import { DestinationFacts } from "@/components/sections/destination/destination-facts";
 import { DestinationHero } from "@/components/sections/destination/destination-hero";
+import { DetailMap } from "@/components/maps/detail-map";
 import { PlaceRailSection } from "@/components/sections/destination/place-rail-section";
 import { PlaceCommunityDiscussion } from "@/components/sections/place/place-community-discussion";
 import type { DestinationDetail } from "@/lib/mock-data/destinations";
@@ -32,6 +33,9 @@ export function DestinationDetails({ destination, backHref, backLabel }: Destina
           />
           <div className="mt-6">
             <DestinationCategoryGrid categories={destination.categories} />
+          </div>
+          <div className="mt-8">
+            <DetailMap markers={destination.mapPlaces} title={`${destination.title} explorer`} mode="destination" />
           </div>
         </section>
 
