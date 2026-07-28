@@ -20,7 +20,7 @@ export interface PlaceDetail {
   description: string;
   images: string[];
   facts: PlaceFact[];
-  verifiedInfo: { openingHours?: string; entryFee?: string; websiteUrl?: string; phone?: string; sourceUrl?: string; sourceReference?: string; lastVerifiedAt?: string; hasParking?: boolean | null; hasWashroom?: boolean | null; isPetFriendly?: boolean | null };
+  verifiedInfo: { openingHours?: string; entryFee?: string; websiteUrl?: string; phone?: string; sourceUrl?: string; sourceReference?: string; lastVerifiedAt?: string; hasParking?: boolean | null; hasWashroom?: boolean | null; isPetFriendly?: boolean | null; hasEvCharging?: boolean | null; typicalVisitMinutes?: number | null };
   nearbyPlaces: PlacePreview[];
   mapMarker: DetailMapMarker | null;
 }
@@ -93,7 +93,7 @@ export async function getPlaceBySlug(
     description: place.description ?? "",
     images: (images ?? []).map((img) => img.url),
     facts,
-    verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly },
+    verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly, hasEvCharging: (place as any).has_ev_charging, typicalVisitMinutes: (place as any).typical_visit_minutes },
     nearbyPlaces,
     mapMarker,
   };

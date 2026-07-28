@@ -28,6 +28,7 @@ type SavedPlace = {
   image: string;
   collectionIds: string[];
 };
+type SavedTrip = { id: string; bufferKm: number; origin: string; destination: string; stopCount: number };
 type Editor = { mode: "create" } | { mode: "rename"; collection: Collection };
 type PlaceAction = { mode: "add" | "remove"; place: SavedPlace };
 type CollectionRemovalTarget = { place: SavedPlace; collection: Collection };
@@ -36,6 +37,7 @@ export function CollectionsPage() {
   const { requireAuth } = useAuthModal();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [places, setPlaces] = useState<SavedPlace[]>([]);
+  const [trips, setTrips] = useState<SavedTrip[]>([]);
   const [activeCollectionId, setActiveCollectionId] = useState<string | "all">("all");
   const [editor, setEditor] = useState<Editor | null>(null);
   const [placeAction, setPlaceAction] = useState<PlaceAction | null>(null);
@@ -53,6 +55,7 @@ export function CollectionsPage() {
     if (!user) {
       setCollections([]);
       setPlaces([]);
+      setTrips([]);
       setMessage("Sign in to create collections and save places.");
       setIsLoading(false);
       return;
@@ -65,6 +68,8 @@ export function CollectionsPage() {
       .eq("user_id", user.id)
       .order("created_at");
     if (error) setMessage(error.message);
+    const { data: tripRows } = await (supabase as any).from("trip_plans").select("id, buffer_km, stops, origin:origin_place_id(name), destination:destination_place_id(name)").eq("user_id", user.id).order("created_at", { ascending: false });
+    setTrips((tripRows ?? []).map((trip: any) => ({ id: trip.id, bufferKm: trip.buffer_km, origin: trip.origin?.name ?? "Start", destination: trip.destination?.name ?? "Destination", stopCount: Array.isArray(trip.stops) ? trip.stops.length : 0 })));
 
     const userCollections = (items ?? []).filter((collection) => !collection.is_system);
     setCollections(userCollections.map((collection: any) => ({
@@ -239,6 +244,8 @@ export function CollectionsPage() {
             {!isLoading && visiblePlaces.length === 0 && <p className="p-6 text-sm text-slate-400">No saved places here yet.</p>}
           </div>
         </section>
+
+        {trips.length > 0 && <section className="mt-12"><div className="flex items-end justify-between"><div><h2 className="text-2xl font-bold">Saved journeys</h2><p className="mt-1 text-sm text-slate-400">Your planning corridors and their suggested stops.</p></div><Link href="/planner" className="text-sm text-cyan-300 hover:text-cyan-200">Plan another</Link></div><div className="mt-5 grid gap-4 md:grid-cols-2">{trips.map((trip) => <Link key={trip.id} href="/planner" className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:border-cyan-400/60"><p className="text-sm font-medium text-cyan-300">Planning corridor</p><h3 className="mt-2 text-lg font-semibold">{trip.origin} <span className="text-cyan-300">→</span> {trip.destination}</h3><p className="mt-2 text-sm text-slate-400">{trip.stopCount} suggested stops · {trip.bufferKm} km buffer</p></Link>)}</div></section>}
       </section>
 
       {editor && <AppModal open={Boolean(editor)} onOpenChange={(open) => { if (!open) setEditor(null); }} ariaLabel={editor.mode === "create" ? "Create collection" : "Rename collection"}><form onSubmit={(event) => { event.preventDefault(); void saveEditor(); }}><div className="flex items-center justify-between"><h2 className="text-xl font-semibold">{editor.mode === "create" ? "Create collection" : "Rename collection"}</h2><button type="button" aria-label="Close" onClick={() => setEditor(null)}><X className="h-5 w-5 text-slate-400" /></button></div><input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Monsoon road trip" className="mt-6 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-3 text-white outline-none focus:border-cyan-400" /><button className="mt-5 w-full rounded-lg bg-cyan-400 px-4 py-3 font-medium text-slate-950">{editor.mode === "create" ? "Create collection" : "Save name"}</button></form></AppModal>}

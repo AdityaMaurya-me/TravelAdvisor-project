@@ -73,7 +73,7 @@ export function DetailMap({ markers, title, mode, className = "" }: DetailMapPro
           if (!disposed) {
             setIsLoading(false);
             setError(styleResponse.status === 401 || styleResponse.status === 403
-              ? "MapTiler rejected this browser key. In MapTiler Cloud, allow http://localhost:3000 and your deployed domain for this key, then restart the app."
+              ? "MapTiler rejected the configured key. Check that .env.local contains the active MapTiler key exactly, confirm the key is enabled and has available quota, then restart the app."
               : `MapTiler could not load the map style (${styleResponse.status}). Please try again.`);
           }
           return;
