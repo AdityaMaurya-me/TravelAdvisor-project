@@ -18,6 +18,7 @@ type DetailMapProps = {
   title: string;
   mode: "destination" | "place";
   className?: string;
+  routeHref?: string;
 };
 
 function getBounds(markers: DetailMapMarker[]) {
@@ -38,7 +39,7 @@ function getBounds(markers: DetailMapMarker[]) {
   };
 }
 
-export function DetailMap({ markers, title, mode, className = "" }: DetailMapProps) {
+export function DetailMap({ markers, title, mode, className = "", routeHref }: DetailMapProps) {
   const element = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(markers[0]?.id ?? null);
   const [error, setError] = useState<string | null>(null);
