@@ -37,7 +37,6 @@ export function RouteDirectionsMap({ points, geometry, loading = false, error }:
         container: container.current,
         style: maptilersdk.MapStyle.STREETS_V2.DEFAULT,
         apiKey: mapTilerKey,
-        projection: "mercator",
         center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2],
         zoom: 9,
         logSDKVersion: false,

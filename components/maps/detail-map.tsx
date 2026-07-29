@@ -66,7 +66,6 @@ export function DetailMap({ markers, title, mode, className = "", routeHref }: D
           container: mapElement,
           style: maptilersdk.MapStyle.STREETS_V2.DEFAULT,
           apiKey: MAPTILER_API_KEY,
-          projection: "mercator",
           center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2],
           zoom: mode === "place" ? 15 : 10,
           logSDKVersion: false,
