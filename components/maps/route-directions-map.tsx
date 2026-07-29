@@ -34,7 +34,7 @@ export function RouteDirectionsMap({ points, geometry, loading = false, error }:
   const bounds = useMemo(() => points.length >= 2 ? getBounds(points, geometry) : null, [geometry, points]);
 
   useEffect(() => {
-    if (!container.current || !styleUrl || !mapTilerKey || !bounds || !geometry?.length) return;
+    if (!container.current || !styleUrl || !mapTilerKey || !bounds) return;
     let disposed = false;
     let map: maptilersdk.Map | undefined;
     let markers: maptilersdk.Marker[] = [];
@@ -52,9 +52,11 @@ export function RouteDirectionsMap({ points, geometry, loading = false, error }:
         map = new maptilersdk.Map({ container: container.current!, style: style as maptilersdk.StyleSpecification, projection: "mercator", center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2], zoom: 9 });
         map.on("load", () => {
           if (!map || disposed) return;
-          map.addSource("journey-route", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: geometry } } });
-          map.addLayer({ id: "journey-route-shadow", type: "line", source: "journey-route", paint: { "line-color": "#07111e", "line-width": 9, "line-opacity": 0.7 } });
-          map.addLayer({ id: "journey-route-line", type: "line", source: "journey-route", paint: { "line-color": "#22d3ee", "line-width": 5, "line-opacity": 0.95 } });
+          if (geometry?.length) {
+            map.addSource("journey-route", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: geometry } } });
+            map.addLayer({ id: "journey-route-shadow", type: "line", source: "journey-route", paint: { "line-color": "#07111e", "line-width": 9, "line-opacity": 0.7 } });
+            map.addLayer({ id: "journey-route-line", type: "line", source: "journey-route", paint: { "line-color": "#22d3ee", "line-width": 5, "line-opacity": 0.95 } });
+          }
           markers = points.map((point) => {
             const element = document.createElement("div");
             element.className = `grid h-8 w-8 place-items-center rounded-full border-2 border-white text-xs font-bold shadow-lg ${point.role === "origin" ? "bg-cyan-500 text-slate-950" : "bg-slate-950 text-cyan-100"}`;
@@ -74,9 +76,9 @@ export function RouteDirectionsMap({ points, geometry, loading = false, error }:
 
   const message = error || mapError;
   return <section className="relative min-h-105 overflow-hidden rounded-2xl border border-slate-700 bg-[#0b2034]">
-    {styleUrl && geometry?.length ? <div ref={container} className="absolute inset-0" aria-label="Interactive driving route map" /> : <div className="absolute inset-0 grid place-items-center p-7 text-center text-sm leading-6 text-slate-300"><LocateFixed className="mb-3 h-7 w-7 text-cyan-300" />{message || (loading ? "Calculating the fastest route…" : !styleUrl ? "Add NEXT_PUBLIC_MAPTILER_API_KEY to display the road map." : "Choose A and B, then calculate your road route.")}</div>}
-    {loading && styleUrl && geometry?.length && <div className="absolute inset-0 grid place-items-center bg-slate-950/45 text-sm text-cyan-100 backdrop-blur-sm">Updating route…</div>}
-    {message && styleUrl && geometry?.length && <div className="absolute left-4 right-4 top-4 rounded-xl border border-amber-300/30 bg-slate-950/85 p-3 text-sm text-amber-100 backdrop-blur">{message}</div>}
+    {styleUrl && points.length >= 2 ? <div ref={container} className="absolute inset-0" aria-label="Interactive route map" /> : <div className="absolute inset-0 grid place-items-center p-7 text-center text-sm leading-6 text-slate-300"><LocateFixed className="mb-3 h-7 w-7 text-cyan-300" />{loading ? "Calculating the fastest route…" : !styleUrl ? "Add NEXT_PUBLIC_MAPTILER_API_KEY to display the road map." : "Choose A and B, then calculate your road route."}</div>}
+    {loading && styleUrl && points.length >= 2 && <div className="absolute inset-0 grid place-items-center bg-slate-950/45 text-sm text-cyan-100 backdrop-blur-sm">Updating route…</div>}
+    {message && <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-amber-300/30 bg-slate-950/90 p-3 text-center text-sm text-amber-100 backdrop-blur">{message}</div>}
     {points.length === 2 && <div className="pointer-events-none absolute left-4 top-4 flex gap-2"><span className="inline-flex items-center gap-1 rounded-lg bg-slate-950/85 px-2.5 py-1.5 text-xs text-cyan-100 backdrop-blur"><MapPin className="h-3.5 w-3.5" />{points[0].name}</span><span className="rounded-lg bg-slate-950/85 px-2.5 py-1.5 text-xs text-cyan-100 backdrop-blur">→</span><span className="rounded-lg bg-slate-950/85 px-2.5 py-1.5 text-xs text-cyan-100 backdrop-blur">{points[1].name}</span></div>}
   </section>;
 }

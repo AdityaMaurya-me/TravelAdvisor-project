@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
-import { Bike, Car, Footprints, Fuel, LoaderCircle, ParkingCircle, ShieldCheck, Toilet, Zap } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Bike, Car, ChevronDown, Footprints, Fuel, LoaderCircle, ParkingCircle, ShieldCheck, Toilet, Zap } from "lucide-react";
 
 import { Footer } from "@/components/layout/footer";
 import Navbar from "@/components/layout/navbar";
@@ -21,8 +21,17 @@ type Directions = { distanceMeters: number; durationSeconds: number; geometry: [
 type JourneyRoutePageProps = { route: JourneyRoute; places: RoutePlaceOption[]; initialOriginSlug?: string; initialDestinationSlug?: string; backHref?: string; backLabel?: string };
 
 function PlacePicker({ label, value, options, onChange, onSelect }: { label: string; value: string; options: RoutePlaceOption[]; onChange: (value: string) => void; onSelect: (place: RoutePlaceOption) => void }) {
-  const matches = value.trim().length < 2 ? [] : options.filter((place) => `${place.name} ${place.locationLabel}`.toLowerCase().includes(value.toLowerCase())).slice(0, 7);
-  return <label className="relative grid gap-2 text-sm font-medium text-slate-200">{label}<input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search a verified place" autoComplete="off" className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-white outline-none transition focus:border-cyan-400" />{matches.length > 0 && <div className="absolute left-0 right-0 top-[4.7rem] z-30 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-2xl">{matches.map((place) => <button type="button" key={place.id} onMouseDown={(event) => event.preventDefault()} onClick={() => onSelect(place)} className="block w-full px-3 py-3 text-left transition hover:bg-slate-800"><span className="block text-sm font-medium">{place.name}</span><span className="mt-0.5 block text-xs text-slate-400">{place.locationLabel}</span></button>)}</div>}</label>;
+  const [open, setOpen] = useState(false);
+  const element = useRef<HTMLLabelElement>(null);
+  const matches = value.trim().length >= 2
+    ? options.filter((place) => `${place.name} ${place.locationLabel}`.toLowerCase().includes(value.toLowerCase())).slice(0, 7)
+    : options.slice(0, 8);
+  useEffect(() => {
+    const close = (event: MouseEvent) => { if (element.current && !element.current.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  return <label ref={element} className="relative grid gap-2 text-sm font-medium text-slate-200">{label}<span className="relative"><input value={value} onFocus={() => setOpen(true)} onChange={(event) => { setOpen(true); onChange(event.target.value); }} placeholder="Search a verified place" autoComplete="off" className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 pr-11 text-white outline-none transition focus:border-cyan-400" /><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen((current) => !current)} aria-label={`Toggle ${label} places`} aria-expanded={open} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-slate-400 transition hover:text-cyan-200"><ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} /></button></span>{open && matches.length > 0 && <div className="absolute left-0 right-0 top-[4.7rem] z-30 max-h-72 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950 shadow-2xl">{matches.map((place) => <button type="button" key={place.id} onMouseDown={(event) => event.preventDefault()} onClick={() => { onSelect(place); setOpen(false); }} className="block w-full px-3 py-3 text-left transition hover:bg-slate-800"><span className="block text-sm font-medium">{place.name}</span><span className="mt-0.5 block text-xs text-slate-400">{place.locationLabel}</span></button>)}</div>}</label>;
 }
 
 function formatDistance(meters: number) { return meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 100000 ? 0 : 1)} km` : `${Math.round(meters)} m`; }

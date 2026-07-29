@@ -53,7 +53,10 @@ export async function POST(request: Request) {
     });
     const body = await response.json().catch(() => null) as any;
     if (!response.ok) {
-      const message = body?.error?.message || body?.message || "OpenRouteService could not calculate a route.";
+      const providerMessage = body?.error?.message || body?.error?.error || body?.message || "";
+      const message = /could not find routable point/i.test(String(providerMessage))
+        ? "One of these places has no road-network connection for the selected mode. Choose a nearby road-accessible point; island, ferry-only, and off-road places cannot have a car route."
+        : providerMessage || "OpenRouteService could not calculate a route.";
       return NextResponse.json({ error: message }, { status: response.status >= 400 && response.status < 500 ? 422 : 502 });
     }
 
