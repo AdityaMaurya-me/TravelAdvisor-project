@@ -63,7 +63,7 @@ export function DetailMap({ markers, title, mode, className = "" }: DetailMapPro
       try {
         map = new maptilersdk.Map({
           container: mapElement,
-          style: "streets-v2",
+          style: maptilersdk.MapStyle.STREETS_V2.DEFAULT,
           apiKey: MAPTILER_API_KEY,
           projection: "mercator",
           center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2],
