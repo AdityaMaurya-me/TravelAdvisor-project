@@ -50,6 +50,12 @@ export function RouteDirectionsMap({ points, geometry, loading = false, error }:
         style.projection ??= { type: "mercator" };
         maptilersdk.config.apiKey = mapTilerKey;
         map = new maptilersdk.Map({ container: container.current!, style: style as maptilersdk.StyleSpecification, projection: "mercator", center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2], zoom: 9 });
+        map.on("error", (event) => {
+          const status = (event.error as { status?: number } | undefined)?.status;
+          if (!disposed && (status === 401 || status === 403)) {
+            setMapError("MapTiler rejected this browser key. Check its allowed origins and deployed-domain restriction.");
+          }
+        });
         map.on("load", () => {
           if (!map || disposed) return;
           if (geometry?.length) {
