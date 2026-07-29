@@ -18,7 +18,7 @@ const profiles = [{ value: "driving-car", label: "Car", Icon: Car }, { value: "c
 type Profile = typeof profiles[number]["value"];
 type StopFilter = "all" | "pet" | "ev" | "quick";
 type Directions = { provider: string; distanceMeters: number; durationSeconds: number; geometry: [number, number][]; steps: { instruction: string; distanceMeters: number; durationSeconds: number }[] };
-type JourneyRoutePageProps = { route: JourneyRoute; places: RoutePlaceOption[]; initialOriginSlug?: string; initialDestinationSlug?: string; backHref?: string; backLabel?: string };
+type JourneyRoutePageProps = { route: JourneyRoute; places: RoutePlaceOption[]; initialOriginSlug?: string; initialDestinationSlug?: string; initialExternalDestination?: RoutePlaceOption; backHref?: string; backLabel?: string };
 
 function PlacePicker({ label, value, options, onChange, onSelect }: { label: string; value: string; options: RoutePlaceOption[]; onChange: (value: string) => void; onSelect: (place: RoutePlaceOption) => void }) {
   const [open, setOpen] = useState(false);
@@ -37,9 +37,9 @@ function PlacePicker({ label, value, options, onChange, onSelect }: { label: str
 function formatDistance(meters: number) { return meters >= 1000 ? `${(meters / 1000).toFixed(meters >= 100000 ? 0 : 1)} km` : `${Math.round(meters)} m`; }
 function formatDuration(seconds: number) { const minutes = Math.round(seconds / 60); return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60 ? `${minutes % 60}m` : ""}`.trim() : `${minutes} min`; }
 
-export function JourneyRoutePage({ route, places, initialOriginSlug, initialDestinationSlug, backHref = "/", backLabel = "Back to search" }: JourneyRoutePageProps) {
+export function JourneyRoutePage({ route, places, initialOriginSlug, initialDestinationSlug, initialExternalDestination, backHref = "/", backLabel = "Back to search" }: JourneyRoutePageProps) {
   const defaultOrigin = places.find((place) => place.slug === initialOriginSlug) ?? null;
-  const defaultDestination = places.find((place) => place.slug === initialDestinationSlug) ?? null;
+  const defaultDestination = initialExternalDestination ?? places.find((place) => place.slug === initialDestinationSlug) ?? null;
   const [origin, setOrigin] = useState<RoutePlaceOption | null>(defaultOrigin);
   const [destination, setDestination] = useState<RoutePlaceOption | null>(defaultDestination);
   const [originText, setOriginText] = useState(defaultOrigin?.name ?? "");

@@ -26,6 +26,7 @@ import { getCategoryBySlug } from "@/lib/mock-data/categories";
 import { PlaceCard } from "@/components/cards/place-card";
 import { findCategoryFromSearch, findCategoryPlaceFromSearch } from "@/lib/mock-data/category-explorer";
 import { getSearchResults } from "@/lib/mock-data/search";
+import { searchGooglePlaces } from "@/lib/google-places";
 import { SearchResultsPage } from "@/components/sections/search/search-results-page";
 
 interface SearchLocationPageProps {
@@ -78,6 +79,6 @@ export default async function SearchLocationPage({
     );
   }
 
-  const results = await getSearchResults(location);
-  return <SearchResultsPage query={location} results={results} />;
+  const [results, googlePlaces] = await Promise.all([getSearchResults(location), searchGooglePlaces(location)]);
+  return <SearchResultsPage query={location} results={results} googlePlaces={googlePlaces} />;
 }

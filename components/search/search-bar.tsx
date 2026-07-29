@@ -1,7 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { MapPin, Search } from "lucide-react";
+
+type GooglePlaceSuggestion = { id: string; name: string; address: string; primaryType?: string };
 
 interface SearchBarProps {
   value: string;
@@ -24,6 +26,9 @@ export default function SearchBar({
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [characterIndex, setCharacterIndex] = useState(0);
   const [deleting, setDeleting] = useState(false);
+  const [suggestions, setSuggestions] = useState<GooglePlaceSuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const element = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const current = PLACEHOLDERS[placeholderIndex];
@@ -50,13 +55,34 @@ export default function SearchBar({
     return () => clearTimeout(timeout);
   }, [characterIndex, deleting, placeholderIndex]);
 
+  useEffect(() => {
+    const query = value.trim();
+    if (query.length < 2) { setSuggestions([]); return; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/places/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+        const body = await response.json() as { places?: GooglePlaceSuggestion[] };
+        if (!controller.signal.aborted) setSuggestions(body.places ?? []);
+      } catch { if (!controller.signal.aborted) setSuggestions([]); }
+    }, 300);
+    return () => { controller.abort(); window.clearTimeout(timer); };
+  }, [value]);
+
+  useEffect(() => {
+    const close = (event: MouseEvent) => { if (element.current && !element.current.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
   return (
-    <form onSubmit={onSubmit} className="w-full">
+    <form ref={element} onSubmit={onSubmit} className="relative w-full">
       <div className="relative flex items-center">
         <input
           type="text"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
           placeholder={placeholder}
           className="search-bar-input w-full rounded-full bg-white px-8 py-5 pr-20 text-lg text-gray-900 shadow-lg transition-all placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
         />
@@ -69,6 +95,18 @@ export default function SearchBar({
           <Search className="h-5 w-5" />
         </button>
       </div>
+      {open && suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 z-30 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
+          <p className="border-b border-slate-100 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Places from Google</p>
+          {suggestions.map((place) => (
+            <button key={place.id} type="button" onClick={() => { onChange(place.name); setOpen(false); requestAnimationFrame(() => element.current?.requestSubmit()); }} className="flex w-full items-start gap-3 px-5 py-3 text-left transition hover:bg-slate-50">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600" />
+              <span><span className="block text-sm font-semibold">{place.name}</span><span className="mt-0.5 block text-xs text-slate-500">{place.address}</span></span>
+            </button>
+          ))}
+          <p className="border-t border-slate-100 px-5 py-2 text-right text-[11px] font-medium text-slate-400">Powered by Google</p>
+        </div>
+      )}
     </form>
   );
 }
