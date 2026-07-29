@@ -12,9 +12,6 @@ import "@maptiler/sdk/dist/maptiler-sdk.css";
 const MAPTILER_API_KEY =
   process.env.NEXT_PUBLIC_MAPTILER_API_KEY ||
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-const MAPTILER_STYLE_URL = MAPTILER_API_KEY
-  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_API_KEY}`
-  : undefined;
 
 type DetailMapProps = {
   markers: DetailMapMarker[];
@@ -50,11 +47,10 @@ export function DetailMap({ markers, title, mode, className = "" }: DetailMapPro
   const bounds = useMemo(() => markers.length ? getBounds(markers) : null, [markers]);
 
   useEffect(() => {
-    if (!MAPTILER_API_KEY || !MAPTILER_STYLE_URL || !element.current || markers.length === 0 || !bounds) return;
+    if (!MAPTILER_API_KEY || !element.current || markers.length === 0 || !bounds) return;
 
     const mapElement = element.current;
     let disposed = false;
-    const controller = new AbortController();
     let map: maptilersdk.Map | undefined;
     let mapMarkers: maptilersdk.Marker[] = [];
     const loadingTimer = window.setTimeout(() => {
@@ -65,30 +61,14 @@ export function DetailMap({ markers, title, mode, className = "" }: DetailMapPro
 
     const initialiseMap = async () => {
       try {
-        // MapLibre 5 can try to migrate the style projection before a remote
-        // MapTiler style has defined one. Fetching and normalising the style
-        // first keeps that migration deterministic in Next/Turbopack.
-        const styleResponse = await fetch(MAPTILER_STYLE_URL, { signal: controller.signal });
-        if (!styleResponse.ok) {
-          if (!disposed) {
-            setIsLoading(false);
-            setError(styleResponse.status === 401 || styleResponse.status === 403
-              ? "MapTiler rejected the configured key. Check that .env.local contains the active MapTiler key exactly, confirm the key is enabled and has available quota, then restart the app."
-              : `MapTiler could not load the map style (${styleResponse.status}). Please try again.`);
-          }
-          return;
-        }
-        const style = await styleResponse.json() as Record<string, unknown>;
-        if (disposed) return;
-        style.projection ??= { type: "mercator" };
-
-        maptilersdk.config.apiKey = MAPTILER_API_KEY;
         map = new maptilersdk.Map({
           container: mapElement,
-          style: style as maptilersdk.StyleSpecification,
+          style: "streets-v2",
+          apiKey: MAPTILER_API_KEY,
           projection: "mercator",
           center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2],
           zoom: mode === "place" ? 15 : 10,
+          logSDKVersion: false,
         });
         map.addControl(new maptilersdk.NavigationControl({ showCompass: false }), "bottom-right");
         map.on("load", () => {
@@ -130,7 +110,6 @@ export function DetailMap({ markers, title, mode, className = "" }: DetailMapPro
             .addTo(map!);
         });
       } catch {
-        if (controller.signal.aborted) return;
         if (!disposed) {
           setIsLoading(false);
           setError("The interactive map could not start. Check your connection and MapTiler key settings, then refresh.");
@@ -142,14 +121,13 @@ export function DetailMap({ markers, title, mode, className = "" }: DetailMapPro
 
     return () => {
       disposed = true;
-      controller.abort();
       window.clearTimeout(loadingTimer);
       mapMarkers.forEach((marker) => marker.remove());
       map?.remove();
     };
   }, [bounds, markers, mode]);
 
-  const hasMap = Boolean(MAPTILER_API_KEY && MAPTILER_STYLE_URL);
+  const hasMap = Boolean(MAPTILER_API_KEY);
   return (
     <section className={`overflow-hidden rounded-2xl border border-border bg-card ${className}`}>
       <div className="flex items-start justify-between gap-3 border-b border-border/70 px-5 py-4">
