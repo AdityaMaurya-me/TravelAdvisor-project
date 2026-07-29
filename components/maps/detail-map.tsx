@@ -161,7 +161,7 @@ export function DetailMap({ markers, title, mode, className = "" }: DetailMapPro
         {error && <div className="absolute inset-0 grid place-items-center bg-slate-950/70 p-5 text-center text-sm text-slate-200 backdrop-blur-sm">{error}</div>}
         {mode === "destination" && markers.length > 0 && <div className="pointer-events-none absolute left-4 top-4 rounded-lg border border-cyan-300/30 bg-slate-950/80 px-3 py-2 text-xs text-cyan-100 backdrop-blur"><Navigation className="mr-1 inline h-3.5 w-3.5" />Explorer area</div>}
       </div>
-      {selected && <Link href={`/place/${selected.slug}`} className="flex items-center gap-3 px-5 py-4 transition hover:bg-accent"><span className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><MapPin className="h-4 w-4" /></span><span className="min-w-0"><span className="block truncate text-sm font-medium">{selected.name}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{selected.locationLabel}</span></span></Link>}
+      {selected && <Link href={`/route/mumbai-to-lonavala?destination=${encodeURIComponent(selected.slug)}`} className="flex items-center gap-3 px-5 py-4 transition hover:bg-accent"><span className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><MapPin className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">Plan a route to {selected.name}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">Set this as B · {selected.locationLabel}</span></span><Navigation className="h-4 w-4 shrink-0 text-cyan-300" /></Link>}
     </section>
   );
 }

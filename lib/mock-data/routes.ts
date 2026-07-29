@@ -22,6 +22,33 @@ export interface RouteWaypoint {
   longitude: number;
 }
 
+export interface RoutePlaceOption {
+  id: string;
+  slug: string;
+  name: string;
+  locationLabel: string;
+  latitude: number;
+  longitude: number;
+}
+
+export async function getRoutePlaceOptions(): Promise<RoutePlaceOption[]> {
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any)
+    .from("v_place_map_marker")
+    .select("id, slug, name, location_label, latitude, longitude")
+    .order("name")
+    .limit(300);
+
+  if (error) return [];
+  return (data ?? []).flatMap((row: any) => {
+    const latitude = Number(row.latitude);
+    const longitude = Number(row.longitude);
+    return row.id && row.slug && row.name && Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? [{ id: row.id, slug: row.slug, name: row.name, locationLabel: row.location_label || "India", latitude, longitude }]
+      : [];
+  });
+}
+
 export interface JourneyRoute {
   id: string;
   slug: string;
