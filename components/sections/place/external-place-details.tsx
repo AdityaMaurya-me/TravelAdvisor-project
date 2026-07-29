@@ -34,7 +34,7 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
           <div className="space-y-6">
             <UniversalBackLink fallbackHref={backHref} fallbackLabel={backLabel} className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground" />
             <div className="relative aspect-16/10 overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <PlacePhoto src="/placeholder.jpg" alt={place.name} query={`${place.name} ${place.address}`} sizes="(min-width: 1024px) 66vw, 100vw" className="object-cover" />
+              <PlacePhoto src="/placeholder.jpg" alt={place.name} query={`${place.name} ${place.address}`} googlePhotoName={place.photo?.name} googlePhotoAuthor={place.photo?.authorName} sizes="(min-width: 1024px) 66vw, 100vw" className="object-cover" />
               <span className="absolute left-4 top-4 rounded-full border border-cyan-300/30 bg-slate-950/80 px-3 py-1.5 text-xs font-medium text-cyan-100 backdrop-blur">Live Google place</span>
             </div>
             <section>

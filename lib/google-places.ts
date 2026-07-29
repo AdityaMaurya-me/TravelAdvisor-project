@@ -12,6 +12,7 @@ export type GooglePlaceDetail = GooglePlace & {
   rating?: number;
   userRatingCount?: number;
   openingHours?: string[];
+  photo?: { name: string; authorName?: string };
 };
 
 const fields = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.googleMapsUri";
@@ -27,12 +28,16 @@ function toGooglePlaceDetail(place: any): GooglePlaceDetail | null {
   const base = toGooglePlace(place);
   if (!base) return null;
   const rating = Number(place?.rating);
+  const photo = Array.isArray(place?.photos) ? place.photos[0] : null;
   return {
     ...base,
     rating: Number.isFinite(rating) ? rating : undefined,
     userRatingCount: Number.isFinite(Number(place?.userRatingCount)) ? Number(place.userRatingCount) : undefined,
     openingHours: Array.isArray(place?.regularOpeningHours?.weekdayDescriptions)
       ? place.regularOpeningHours.weekdayDescriptions.filter((item: unknown): item is string => typeof item === "string")
+      : undefined,
+    photo: typeof photo?.name === "string"
+      ? { name: photo.name, authorName: typeof photo.authorAttributions?.[0]?.displayName === "string" ? photo.authorAttributions[0].displayName : undefined }
       : undefined,
   };
 }
@@ -71,7 +76,7 @@ export async function getGooglePlaceById(placeId: string): Promise<GooglePlaceDe
     const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
       headers: {
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "id,displayName,formattedAddress,location,primaryType,googleMapsUri,rating,userRatingCount,regularOpeningHours",
+        "X-Goog-FieldMask": "id,displayName,formattedAddress,location,primaryType,googleMapsUri,rating,userRatingCount,regularOpeningHours,photos",
       },
       cache: "no-store",
     });
