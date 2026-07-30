@@ -38,7 +38,7 @@ export function Hero() {
             <div className="w-full max-w-7xl px-6 md:px-12 lg:px-20 xl:px-28">
               <h1 className="max-w-6xl text-4xl font-bold leading-tight tracking-tight text-white md:text-6xl xl:text-7xl 2xl:text-8xl">Discover Every Place Worth Stopping For</h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80 xl:text-xl">Search any place, route, or experience and find attractions, food, hidden gems, and more.</p>
-              <div className="mt-8 w-full max-w-4xl"><SearchBar value={searchQuery} onChange={setSearchQuery} onSubmit={handleSearch} /></div>
+              <div className="mt-8 w-full max-w-4xl"><SearchBar value={searchQuery} onChange={setSearchQuery} onSubmit={handleSearch} onPlaceSelect={(place) => router.push(`/discover/${encodeURIComponent(place.id)}?from=/&fromLabel=Back%20to%20home`)} /></div>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 {POPULAR_SEARCHES.map((item) => <Link key={item.label} href={item.href} className="rounded-full border border-white/10 bg-white/10 px-6 py-2 text-sm text-white transition-colors duration-200 hover:bg-white/20">{item.label}</Link>)}
               </div>

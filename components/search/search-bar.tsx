@@ -9,6 +9,7 @@ interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onPlaceSelect?: (place: GooglePlaceSuggestion) => void;
 }
 
 const PLACEHOLDERS = [
@@ -21,6 +22,7 @@ export default function SearchBar({
   value,
   onChange,
   onSubmit,
+  onPlaceSelect,
 }: SearchBarProps) {
   const [placeholder, setPlaceholder] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -99,7 +101,7 @@ export default function SearchBar({
         <div className="absolute left-0 right-0 z-30 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
           <p className="border-b border-slate-100 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Places from Google</p>
           {suggestions.map((place) => (
-            <button key={place.id} type="button" onClick={() => { onChange(place.name); setOpen(false); requestAnimationFrame(() => element.current?.requestSubmit()); }} className="flex w-full items-start gap-3 px-5 py-3 text-left transition hover:bg-slate-50">
+            <button key={place.id} type="button" onClick={() => { onChange(place.name); setOpen(false); if (onPlaceSelect) onPlaceSelect(place); else requestAnimationFrame(() => element.current?.requestSubmit()); }} className="flex w-full items-start gap-3 px-5 py-3 text-left transition hover:bg-slate-50">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600" />
               <span><span className="block text-sm font-semibold">{place.name}</span><span className="mt-0.5 block text-xs text-slate-500">{place.address}</span></span>
             </button>
