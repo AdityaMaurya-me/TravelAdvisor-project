@@ -57,7 +57,7 @@ begin
     'attraction',
     nullif(trim(coalesce(p_address, '')), ''),
     'India',
-    extensions.st_setsrid(extensions.st_makepoint(p_longitude, p_latitude), 4326)::public.geography,
+    public.st_setsrid(public.st_makepoint(p_longitude, p_latitude), 4326)::public.geography,
     'Live Google Maps place. Details may change.',
     '/placeholder.jpg',
     p_google_place_id,
