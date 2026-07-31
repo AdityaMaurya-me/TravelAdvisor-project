@@ -7,6 +7,7 @@ import { PlaceCommunityDiscussion } from "@/components/sections/place/place-comm
 import { PlaceTravelStatus } from "@/components/sections/place/place-travel-status";
 import { PlaceVerifiedInformation } from "@/components/sections/place/place-verified-information";
 import { DetailMap } from "@/components/maps/detail-map";
+import { PlaceWeather } from "@/components/sections/place/place-weather";
 import type { PlaceDetail } from "@/lib/mock-data/places";
 
 interface PlaceDetailsProps {
@@ -31,6 +32,7 @@ export function PlaceDetails({ place, backHref, backLabel }: PlaceDetailsProps) 
           <aside className="space-y-5 lg:sticky lg:top-24">
             <PlaceTravelStatus placeId={place.id} placeName={place.title} destinationName={place.destinationTitle} />
             <PlaceVerifiedInformation info={place.verifiedInfo} />
+            {place.mapMarker && <PlaceWeather latitude={place.mapMarker.latitude} longitude={place.mapMarker.longitude} />}
             <DetailMap markers={place.mapMarker ? [place.mapMarker] : []} title={place.title} mode="place" />
             <NearbyPlacesList
               places={place.nearbyPlaces}
