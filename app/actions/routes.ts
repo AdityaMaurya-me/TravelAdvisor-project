@@ -13,3 +13,10 @@ export async function toggleSavedRoute(routeId: string, shouldSave: boolean) {
   if (error) throw error;
   revalidatePath("/collections");
 }
+
+export async function getSavedRouteStatus(routeId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { data, error } = await supabase.from("saved_routes").select("route_id").eq("user_id", userId).eq("route_id", routeId).maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
+}

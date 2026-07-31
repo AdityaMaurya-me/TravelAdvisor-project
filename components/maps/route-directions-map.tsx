@@ -11,6 +11,9 @@ export type RouteMapPoint = { name: string; latitude: number; longitude: number;
 type RouteDirectionsMapProps = { points: RouteMapPoint[]; geometry: [number, number][] | null; loading?: boolean; error?: string };
 
 const mapTilerKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
+const routeMapStyleUrl = mapTilerKey
+  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(mapTilerKey)}`
+  : undefined;
 
 function getBounds(points: RouteMapPoint[], geometry: [number, number][] | null) {
   const coordinates = geometry?.length ? geometry : points.map((point) => [point.longitude, point.latitude] as [number, number]);
@@ -35,7 +38,7 @@ export function RouteDirectionsMap({ points, geometry, loading = false, error }:
     try {
       map = new maptilersdk.Map({
         container: container.current,
-        style: maptilersdk.MapStyle.STREETS_V2.DEFAULT,
+        style: routeMapStyleUrl!,
         apiKey: mapTilerKey,
         center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2],
         zoom: 9,

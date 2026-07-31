@@ -101,7 +101,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-6">
           <div className="relative h-32 w-32 overflow-hidden rounded-full bg-slate-800">
             {avatar ? (
-              <Image src={avatar} alt="Profile photo" fill className="object-cover" />
+              <Image src={avatar} alt="Profile photo" fill sizes="160px" className="object-cover" />
             ) : (
               <div className="grid h-full place-items-center text-4xl font-bold text-cyan-300">
                 {name.slice(0, 1).toUpperCase()}

@@ -45,6 +45,77 @@ export async function createCollection(title: string) {
   revalidatePath("/collections");
 }
 
+export async function createRouteCollection(title: string) {
+  const cleanTitle = title.trim();
+  if (!cleanTitle || cleanTitle.length > 80) throw new Error("Collection titles must be between 1 and 80 characters.");
+  const { supabase, userId } = await requireUserId();
+  const { data, error } = await (supabase as any).from("route_collections").insert({ user_id: userId, title: cleanTitle }).select("id, title").single();
+  if (error || !data) throw error ?? new Error("Unable to create route collection.");
+  revalidatePath("/collections");
+  return data as { id: string; title: string };
+}
+
+export async function renameRouteCollection(collectionId: string, title: string) {
+  const cleanTitle = title.trim();
+  if (!cleanTitle || cleanTitle.length > 80) throw new Error("Collection titles must be between 1 and 80 characters.");
+
+  const { supabase, userId } = await requireUserId();
+  const { error } = await (supabase as any)
+    .from("route_collections")
+    .update({ title: cleanTitle })
+    .eq("id", collectionId)
+    .eq("user_id", userId);
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
+export async function deleteRouteCollection(collectionId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { error } = await (supabase as any)
+    .from("route_collections")
+    .delete()
+    .eq("id", collectionId)
+    .eq("user_id", userId);
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
+export async function addRouteToCollection(collectionId: string, routeId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { data: collection } = await (supabase as any).from("route_collections").select("id").eq("id", collectionId).eq("user_id", userId).maybeSingle();
+  if (!collection) throw new Error("Route collection not found.");
+  const { error } = await (supabase as any).from("route_collection_items").upsert({ collection_id: collectionId, route_id: routeId }, { onConflict: "collection_id,route_id" });
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
+export async function addTripPlanToRouteCollection(collectionId: string, tripPlanId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { data: collection } = await (supabase as any).from("route_collections").select("id").eq("id", collectionId).eq("user_id", userId).maybeSingle();
+  if (!collection) throw new Error("Route collection not found.");
+  const { error } = await (supabase as any).from("route_collection_trip_plans").upsert({ collection_id: collectionId, trip_plan_id: tripPlanId }, { onConflict: "collection_id,trip_plan_id" });
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
+export async function removeTripPlanFromRouteCollection(collectionId: string, tripPlanId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { data: collection } = await (supabase as any).from("route_collections").select("id").eq("id", collectionId).eq("user_id", userId).maybeSingle();
+  if (!collection) throw new Error("Route collection not found.");
+  const { error } = await (supabase as any).from("route_collection_trip_plans").delete().eq("collection_id", collectionId).eq("trip_plan_id", tripPlanId);
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
+export async function removeRouteFromRouteCollection(collectionId: string, routeId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { data: collection } = await (supabase as any).from("route_collections").select("id").eq("id", collectionId).eq("user_id", userId).maybeSingle();
+  if (!collection) throw new Error("Route collection not found.");
+  const { error } = await (supabase as any).from("route_collection_items").delete().eq("collection_id", collectionId).eq("route_id", routeId);
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
 export async function savePlace(placeSlug: string) {
   const { supabase, userId } = await requireUserId();
   const [placeId, collection] = await Promise.all([getPlaceId(supabase, placeSlug), getOrCreateSavedPlacesCollection(supabase, userId)]);

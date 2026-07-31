@@ -13,6 +13,10 @@ const MAPTILER_API_KEY =
   process.env.NEXT_PUBLIC_MAPTILER_API_KEY ||
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
+const mapStyleUrl = MAPTILER_API_KEY
+  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(MAPTILER_API_KEY)}`
+  : undefined;
+
 type DetailMapProps = {
   markers: DetailMapMarker[];
   title: string;
@@ -64,7 +68,7 @@ export function DetailMap({ markers, title, mode, className = "", routeHref }: D
       try {
         map = new maptilersdk.Map({
           container: mapElement,
-          style: maptilersdk.MapStyle.STREETS_V2.DEFAULT,
+          style: mapStyleUrl!,
           apiKey: MAPTILER_API_KEY,
           center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2],
           zoom: mode === "place" ? 15 : 10,

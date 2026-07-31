@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, LoaderCircle, MapPinned, Route, SlidersHorizontal } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, ChevronDown, LoaderCircle, MapPinned, Route, SlidersHorizontal } from "lucide-react";
 
 import { Footer } from "@/components/layout/footer";
 import Navbar from "@/components/layout/navbar";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
 import { saveTripPlan } from "@/app/actions/trip-plans";
+import { ShareTripButton } from "@/components/sections/collections/share-trip-button";
+import { SaveTripToRouteCollection } from "@/components/sections/collections/save-trip-to-route-collection";
 import { supabase } from "@/lib/supabase";
 
 type PlaceOption = {
@@ -65,10 +67,19 @@ function budgetBand(entryFee: string | null) {
 }
 
 function PlacePicker({ label, value, options, onChange, onSelect }: PlacePickerProps) {
-  const matches = value.trim().length < 2 ? [] : options.filter((option) => `${option.name} ${option.locationLabel}`.toLowerCase().includes(value.toLowerCase())).slice(0, 6);
-  return <label className="relative grid gap-2 text-sm font-medium">{label}
-    <input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search a verified place" autoComplete="off" className="h-11 rounded-lg border border-border bg-card px-3 text-foreground outline-none focus:border-cyan-400" />
-    {matches.length > 0 && <div className="absolute left-0 right-0 top-[4.9rem] z-20 overflow-hidden rounded-xl border border-border bg-card shadow-2xl">{matches.map((option) => <button type="button" key={option.id} onMouseDown={(event) => event.preventDefault()} onClick={() => onSelect(option)} className="block w-full px-3 py-3 text-left transition hover:bg-accent"><span className="block text-sm font-medium">{option.name}</span><span className="mt-0.5 block text-xs text-muted-foreground">{option.locationLabel}</span></button>)}</div>}
+  const [open, setOpen] = useState(false);
+  const picker = useRef<HTMLLabelElement>(null);
+  const matches = value.trim().length >= 2
+    ? options.filter((option) => `${option.name} ${option.locationLabel}`.toLowerCase().includes(value.toLowerCase())).slice(0, 6)
+    : options.slice(0, 6);
+  useEffect(() => {
+    const close = (event: MouseEvent) => { if (picker.current && !picker.current.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  return <label ref={picker} className="relative grid gap-2 text-sm font-medium">{label}
+    <span className="relative"><input value={value} onFocus={() => setOpen(true)} onChange={(event) => { setOpen(true); onChange(event.target.value); }} placeholder="Search a verified place" autoComplete="off" className="h-11 w-full rounded-lg border border-border bg-card px-3 pr-11 text-foreground outline-none focus:border-cyan-400" /><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen((current) => !current)} aria-label={`Toggle ${label} places`} aria-expanded={open} className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground transition hover:text-cyan-300"><ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} /></button></span>
+    {open && matches.length > 0 && <div className="absolute left-0 right-0 top-[4.9rem] z-20 max-h-72 overflow-y-auto rounded-xl border border-border bg-card shadow-2xl">{matches.map((option) => <button type="button" key={option.id} onMouseDown={(event) => event.preventDefault()} onClick={() => { onSelect(option); setOpen(false); }} className="block w-full px-3 py-3 text-left transition hover:bg-accent"><span className="block text-sm font-medium">{option.name}</span><span className="mt-0.5 block text-xs text-muted-foreground">{option.locationLabel}</span></button>)}</div>}
   </label>;
 }
 
@@ -85,6 +96,7 @@ export default function PlannerPage() {
   const [planned, setPlanned] = useState(false);
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [savedTripId, setSavedTripId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -124,12 +136,14 @@ export default function PlannerPage() {
     if (!origin || !destination) return;
     if (!await requireAuth(save)) return;
     try {
-      await saveTripPlan({ originPlaceId: origin.id, destinationPlaceId: destination.id, bufferKm, stops: candidates.map((place) => ({ id: place.id, slug: place.slug, name: place.name })) });
+      const tripId = await saveTripPlan({ originPlaceId: origin.id, destinationPlaceId: destination.id, bufferKm, stops: candidates.map((place) => ({ id: place.id, slug: place.slug, name: place.name })) });
+      setSavedTripId(tripId);
       setSaveMessage("Journey saved to Collections.");
     } catch (saveError) { setSaveMessage(saveError instanceof Error ? saveError.message : "Unable to save this journey."); }
   };
 
   return <main className="min-h-screen bg-background"><Navbar /><section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8"><Link href="/journey" className="text-sm text-muted-foreground transition-colors hover:text-cyan-400">← Back to journey tools</Link><div className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-2xl sm:p-10"><div className="flex items-start gap-4"><span className="rounded-xl bg-cyan-400/10 p-3 text-cyan-400"><Route className="h-6 w-6" /></span><div><p className="text-sm font-medium text-cyan-400">Journey planner</p><h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">Plan around the places that matter</h1><p className="mt-3 max-w-3xl text-muted-foreground">Choose verified start and end points, then explore places within a local planning corridor. Driving directions and travel time will be added when a routing provider is connected.</p></div></div><form onSubmit={submit} className="mt-8 grid gap-4 rounded-2xl border border-border bg-background/40 p-5 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-end"><PlacePicker label="Starting point" value={originText} options={places} onChange={(value) => { setOriginText(value); setOrigin(null); setPlanned(false); }} onSelect={(place) => { setOrigin(place); setOriginText(place.name); setPlanned(false); }} /><ArrowRight className="hidden h-5 w-5 text-cyan-400 sm:mb-3 sm:block" /><PlacePicker label="Destination" value={destinationText} options={places} onChange={(value) => { setDestinationText(value); setDestination(null); setPlanned(false); }} onSelect={(place) => { setDestination(place); setDestinationText(place.name); setPlanned(false); }} /><button type="submit" disabled={places.length === 0} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-5 font-medium text-slate-950 transition-colors hover:bg-cyan-300 disabled:opacity-60"><MapPinned className="h-4 w-4" />Plan journey</button></form>{places.length === 0 && !error && <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" />Loading verified places…</p>}{error && <p role="alert" className="mt-4 rounded-lg bg-red-400/10 p-3 text-sm text-red-100">{error}</p>}</div>
     {planned && origin && destination && <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"><div className="rounded-2xl border border-border bg-card p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium text-cyan-300">Planning corridor</p><h2 className="mt-1 text-2xl font-bold">{origin.name} <span className="text-cyan-300">→</span> {destination.name}</h2><p className="mt-2 text-sm text-muted-foreground">Approx. {routeDistance?.toFixed(0)} km direct distance · Places are within {bufferKm} km of the corridor.</p></div><div className="flex flex-col items-end gap-2"><button type="button" onClick={() => void save()} className="rounded-lg border border-cyan-400/50 px-3 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-400/10">Save journey</button><a href={`/route/mumbai-to-lonavala?from=/planner&fromLabel=Back%20to%20Journey%20Planner`} className="text-sm text-cyan-300 hover:text-cyan-100">Open sample route →</a></div></div>{saveMessage && <p className="mt-4 rounded-lg bg-cyan-400/10 p-3 text-sm text-cyan-100">{saveMessage}</p>}<div className="mt-6 flex flex-wrap items-center gap-3"><label className="flex items-center gap-3 text-sm">Buffer <input type="range" min="2" max="25" value={bufferKm} onChange={(event) => setBufferKm(Number(event.target.value))} className="accent-cyan-400" /><span className="w-12 text-cyan-200">{bufferKm} km</span></label><div className="flex flex-wrap gap-2">{([ ["all", "All"], ["pet", "Pet friendly"], ["ev", "EV charging"], ["quick", "≤ 30 min"] ] as const).map(([value, label]) => <button type="button" key={value} onClick={() => setFilter(value)} className={`rounded-full border px-3 py-1.5 text-xs transition ${filter === value ? "border-cyan-300 bg-cyan-400/15 text-cyan-100" : "border-border text-muted-foreground hover:border-cyan-400/50"}`}>{label}</button>)}</div></div><div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-xs font-medium text-muted-foreground">Budget</span>{([ ["all", "Any"], ["free", "Free"], ["under-200", "Under ₹200"], ["200-plus", "₹200+"] ] as const).map(([value, label]) => <button type="button" key={value} onClick={() => setBudgetFilter(value)} className={`rounded-full border px-3 py-1.5 text-xs transition ${budgetFilter === value ? "border-cyan-300 bg-cyan-400/15 text-cyan-100" : "border-border text-muted-foreground hover:border-cyan-400/50"}`}>{label}</button>)}</div><div className="mt-6 space-y-3">{candidates.length ? candidates.map((place) => <Link href={`/place/${place.slug}?from=/planner&fromLabel=Back%20to%20Journey%20Planner`} key={place.id} className="flex items-center justify-between rounded-xl border border-border/70 p-4 transition hover:border-cyan-400/60 hover:bg-accent"><span><span className="block font-medium">{place.name}</span><span className="mt-1 block text-sm text-muted-foreground">{place.locationLabel} · {distanceToCorridorKm(place, origin, destination).toFixed(1)} km from corridor{place.entryFee ? ` · ${place.entryFee}` : ""}</span></span><ArrowRight className="h-4 w-4 text-cyan-300" /></Link>) : <div className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">No verified stops match this corridor and filter. Increase the buffer or choose another facility or budget filter.</div>}</div></div><aside className="rounded-2xl border border-border bg-card p-6"><SlidersHorizontal className="h-5 w-5 text-cyan-300" /><h2 className="mt-4 font-semibold">How this works</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">This is a straight-line planning corridor, calculated from verified coordinates. It helps discover relevant places before a road-routing service is connected.</p><p className="mt-4 text-xs leading-5 text-slate-500">It does not claim road distance, traffic, tolls, or on-route driving directions.</p></aside></section>}
+    {savedTripId && origin && destination && <div className="mt-5 rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-4"><p className="text-sm font-medium text-cyan-100">Journey saved — ready to share</p><p className="mt-1 text-xs text-muted-foreground">Send this itinerary by WhatsApp, social apps, or a copied link.</p><ShareTripButton tripId={savedTripId} title={`${origin.name} to ${destination.name}`} /><SaveTripToRouteCollection tripPlanId={savedTripId} /></div>}
   </section><Footer /></main>;
 }
