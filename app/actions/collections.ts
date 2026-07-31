@@ -57,6 +57,27 @@ export async function savePlace(placeSlug: string) {
   revalidatePath("/collections");
 }
 
+export async function syncGuestSavedPlaces(placeSlugs: string[]) {
+  const cleanSlugs = [...new Set(placeSlugs.filter((slug) => typeof slug === "string" && /^[a-z0-9-]{1,160}$/i.test(slug)))].slice(0, 100);
+  if (!cleanSlugs.length) return { synced: 0 };
+
+  const { supabase, userId } = await requireUserId();
+  const [{ data: places, error: placeError }, collection] = await Promise.all([
+    supabase.from("places").select("id").in("slug", cleanSlugs),
+    getOrCreateSavedPlacesCollection(supabase, userId),
+  ]);
+  if (placeError) throw placeError;
+  if (!places?.length) return { synced: 0 };
+
+  const { error } = await supabase.from("collection_items").upsert(
+    places.map((place) => ({ collection_id: collection.id, place_id: place.id })),
+    { onConflict: "collection_id,place_id" },
+  );
+  if (error) throw error;
+  revalidatePath("/collections");
+  return { synced: places.length };
+}
+
 export async function renameCollection(collectionId: string, title: string) {
   const cleanTitle = title.trim();
   if (!cleanTitle || cleanTitle.length > 80) throw new Error("Collection titles must be between 1 and 80 characters.");

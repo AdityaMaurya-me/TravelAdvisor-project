@@ -19,3 +19,24 @@ export async function saveTripPlan(input: TripPlanInput) {
   if (error) throw error;
   revalidatePath("/collections");
 }
+
+export async function createShareableTripPlan(tripPlanId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { data, error } = await (supabase as any)
+    .from("trip_plans")
+    .update({ is_public: true })
+    .eq("id", tripPlanId)
+    .eq("user_id", userId)
+    .select("share_token")
+    .single();
+  if (error || !data?.share_token) throw error ?? new Error("Unable to create a share link.");
+  revalidatePath("/collections");
+  return String(data.share_token);
+}
+
+export async function disableShareableTripPlan(tripPlanId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { error } = await (supabase as any).from("trip_plans").update({ is_public: false }).eq("id", tripPlanId).eq("user_id", userId);
+  if (error) throw error;
+  revalidatePath("/collections");
+}

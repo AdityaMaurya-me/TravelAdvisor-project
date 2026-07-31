@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { requireUserId } from "@/app/actions/auth";
 
-export async function createCommunityTip(placeId: string, content: string) {
+export async function createCommunityTip(placeId: string, content: string, rating?: number | null, imageUrl?: string | null) {
   const cleanContent = content.trim();
   if (!placeId || !cleanContent || cleanContent.length > 1000) throw new Error("Enter a tip between 1 and 1000 characters.");
+  if (rating !== undefined && rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 5)) throw new Error("Choose a rating from 1 to 5 stars.");
+  if (imageUrl && (imageUrl.length > 1000 || !/^https:\/\//.test(imageUrl))) throw new Error("The review photo URL is invalid.");
 
   const { supabase, userId } = await requireUserId();
-  const { error } = await supabase.from("community_tips").insert({ user_id: userId, place_id: placeId, tip_type: "hidden_place", content: cleanContent });
+  const { error } = await supabase.from("community_tips").insert({ user_id: userId, place_id: placeId, tip_type: "hidden_place", content: cleanContent, rating: rating ?? null, image_url: imageUrl ?? null });
   if (error) throw error;
   revalidatePath("/community");
 }

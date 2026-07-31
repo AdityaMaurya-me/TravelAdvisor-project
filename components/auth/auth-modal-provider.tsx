@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { getLastSignInEmail, rememberSignInEmail } from "@/lib/auth/last-email";
 import { supabase } from "@/lib/supabase";
 import { AppModal } from "@/components/ui/app-modal";
+import { syncGuestSavedPlaces } from "@/app/actions/collections";
+import { clearGuestSavedPlaces, getGuestSavedPlaceSlugs } from "@/lib/saved-places/guest";
 
 type ResumeAction = () => void | Promise<void>;
 type AuthModalContextValue = { requireAuth: (resumeAction?: ResumeAction) => Promise<boolean> };
@@ -31,6 +33,29 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => setLastEmail(getLastSignInEmail()), []);
+
+  const syncGuestSaves = async () => {
+    const slugs = getGuestSavedPlaceSlugs();
+    if (!slugs.length) return;
+    try {
+      await syncGuestSavedPlaces(slugs);
+      clearGuestSavedPlaces();
+      window.dispatchEvent(new Event("traveladvisor:saved-places-updated"));
+    } catch {
+      // Keep local saves untouched and retry on the next successful session.
+    }
+  };
+
+  useEffect(() => {
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await syncGuestSaves();
+    })();
+    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") void syncGuestSaves();
+    });
+    return () => subscription.subscription.unsubscribe();
+  }, []);
 
   const close = () => {
     setIsOpen(false);
@@ -68,6 +93,7 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
 
     rememberSignInEmail(email);
     setLastEmail(email.trim().toLowerCase());
+    await syncGuestSaves();
     const action = pendingAction.current;
     setIsOpen(false);
     pendingAction.current = undefined;

@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthModalProvider } from '@/components/auth/auth-modal-provider'
+import { ThemeProvider } from '@/components/theme/theme-provider'
 
 export const metadata: Metadata = {
   title: 'Travel Advisor - Discover Your Next Destination',
@@ -40,9 +41,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
-        <AuthModalProvider>{children}</AuthModalProvider>
+        <ThemeProvider><AuthModalProvider>{children}</AuthModalProvider></ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

@@ -116,6 +116,78 @@
   --sidebar-ring: #60a5fa;
 }
 
+.light {
+  color-scheme: light;
+  --background: #f6f9fc;
+  --foreground: #102033;
+  --card: #ffffff;
+  --card-foreground: #102033;
+  --popover: #ffffff;
+  --popover-foreground: #102033;
+  --primary: #0891b2;
+  --primary-foreground: #ffffff;
+  --secondary: #e6f4f7;
+  --secondary-foreground: #143447;
+  --muted: #eaf0f5;
+  --muted-foreground: #526779;
+  --accent: #e2f4f8;
+  --accent-foreground: #102033;
+  --destructive: #dc2626;
+  --border: #cad8e3;
+  --input: #cad8e3;
+  --ring: #06b6d4;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #102033;
+  --sidebar-primary: #0891b2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e2f4f8;
+  --sidebar-accent-foreground: #102033;
+  --sidebar-border: #cad8e3;
+  --sidebar-ring: #06b6d4;
+}
+
+html.light,
+html.light body {
+  background-color: #f6f9fc !important;
+  color: #102033 !important;
+}
+
+.light .bg-background { background-color: #f6f9fc !important; }
+.light .bg-card { background-color: #ffffff !important; }
+.light .text-foreground { color: #102033 !important; }
+.light .text-muted-foreground { color: #526779 !important; }
+.light .text-white,
+.light [class~="text-white/80"],
+.light [class~="text-white/70"] { color: #102033 !important; }
+.light [class*="text-slate-"] { color: #334b62 !important; }
+.light [class*="text-cyan-"] { color: #087a91 !important; }
+.light [class*="text-amber-"] { color: #8a5b00 !important; }
+.light [class*="text-red-"] { color: #b42318 !important; }
+
+/* Selected navigation and filter states previously used pale text intended
+   for dark cards. Keep their cyan emphasis while restoring readable contrast. */
+.light [aria-current="page"],
+.light [aria-pressed="true"],
+.light .bg-cyan-400\/10,
+.light .bg-cyan-400\/15 { color: #075d70 !important; }
+
+.light .travel-hero-overlay {
+  background: linear-gradient(to right, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.66), rgb(255 255 255 / 0.16));
+}
+
+.light .travel-hero-fade {
+  background: linear-gradient(to top, #f6f9fc 0%, rgb(246 249 252 / 0.94) 10%, rgb(246 249 252 / 0.62) 27%, transparent 60%);
+}
+
+.light .travel-hero-title { color: #102033; }
+.light .travel-hero-copy { color: rgb(16 32 51 / 0.82); }
+.light .travel-hero-chip {
+  border-color: rgb(8 145 178 / 0.22);
+  background: rgb(255 255 255 / 0.68);
+  color: #143447;
+}
+.light .travel-hero-chip:hover { background: rgb(255 255 255 / 0.9); }
+
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
@@ -184,6 +256,16 @@
   }
   input.search-bar-input::placeholder {
     color: #6b7280;
+  }
+  .light input,
+  .light select,
+  .light textarea {
+    background-color: rgb(255 255 255 / 0.92) !important;
+    color: #102033 !important;
+  }
+  .light input::placeholder,
+  .light textarea::placeholder {
+    color: #64748b;
   }
   input:focus,
   select:focus,

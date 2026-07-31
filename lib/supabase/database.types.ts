@@ -235,7 +235,9 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          image_url: string | null
           place_id: string
+          rating: number | null
           tip_type: Database["public"]["Enums"]["tip_type"]
           upvotes: number | null
           user_id: string
@@ -244,7 +246,9 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           place_id: string
+          rating?: number | null
           tip_type: Database["public"]["Enums"]["tip_type"]
           upvotes?: number | null
           user_id: string
@@ -253,7 +257,9 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           place_id?: string
+          rating?: number | null
           tip_type?: Database["public"]["Enums"]["tip_type"]
           upvotes?: number | null
           user_id?: string
@@ -2229,4 +2235,3 @@ export const Constants = {
     },
   },
 } as const
-

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { savePlace, unsavePlace } from "@/app/actions/collections";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
+import { isGuestPlaceSaved, SAVED_PLACES_EVENT, toggleGuestSavedPlace } from "@/lib/saved-places/guest";
 
 interface SaveDestinationButtonProps {
   className?: string;
@@ -32,6 +33,7 @@ export function SaveDestinationButton({
   const [isPopping, setIsPopping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCheckingSavedState, setIsCheckingSavedState] = useState(Boolean(placeSlug));
+  const [isGuestSave, setIsGuestSave] = useState(false);
 
   const loadSavedState = useCallback(async () => {
     if (!placeSlug) {
@@ -42,7 +44,9 @@ export function SaveDestinationButton({
     setIsCheckingSavedState(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setIsSaved(false);
+      const savedOnDevice = isGuestPlaceSaved(placeSlug);
+      setIsSaved(savedOnDevice);
+      setIsGuestSave(savedOnDevice);
       setIsCheckingSavedState(false);
       return;
     }
@@ -65,13 +69,14 @@ export function SaveDestinationButton({
       .eq("place_id", place.id)
       .maybeSingle();
     setIsSaved(Boolean(savedItem));
+    setIsGuestSave(false);
     setIsCheckingSavedState(false);
   }, [placeSlug]);
 
   useEffect(() => {
     void loadSavedState();
-    window.addEventListener("traveladvisor:saved-places-updated", loadSavedState);
-    return () => window.removeEventListener("traveladvisor:saved-places-updated", loadSavedState);
+    window.addEventListener(SAVED_PLACES_EVENT, loadSavedState);
+    return () => window.removeEventListener(SAVED_PLACES_EVENT, loadSavedState);
   }, [loadSavedState]);
 
   const completeSave = async () => {
@@ -95,6 +100,15 @@ export function SaveDestinationButton({
 
   const handleClick = async () => {
     if (!placeSlug || isSaving) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toggleGuestSavedPlace(placeSlug);
+      const savedOnDevice = isGuestPlaceSaved(placeSlug);
+      setIsSaved(savedOnDevice);
+      setIsGuestSave(savedOnDevice);
+      if (savedOnDevice) setIsPopping(true);
+      return;
+    }
     if (!await requireAuth(completeSave)) return;
     await completeSave();
   };
@@ -125,7 +139,7 @@ export function SaveDestinationButton({
           )}
         />
       </span>
-      {isSaving ? "Saving..." : isCheckingSavedState ? "Checking saved places..." : isSaved ? "Saved to collection" : "Save to collection"}
+      {isSaving ? "Saving..." : isCheckingSavedState ? "Checking saved places..." : isSaved ? isGuestSave ? "Saved on this device" : "Saved to collection" : "Save to collection"}
     </button>
   );
 }
