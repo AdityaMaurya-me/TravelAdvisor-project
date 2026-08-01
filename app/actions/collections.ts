@@ -116,6 +116,26 @@ export async function removeRouteFromRouteCollection(collectionId: string, route
   revalidatePath("/collections");
 }
 
+export async function deleteSavedTripPlan(tripPlanId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { error } = await (supabase as any).from("trip_plans").delete().eq("id", tripPlanId).eq("user_id", userId);
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
+export async function deleteSavedRoute(routeId: string) {
+  const { supabase, userId } = await requireUserId();
+  const { data: ownedCollections, error: collectionError } = await (supabase as any).from("route_collections").select("id").eq("user_id", userId);
+  if (collectionError) throw collectionError;
+  if (ownedCollections?.length) {
+    const { error: itemError } = await (supabase as any).from("route_collection_items").delete().in("collection_id", ownedCollections.map((collection: { id: string }) => collection.id)).eq("route_id", routeId);
+    if (itemError) throw itemError;
+  }
+  const { error } = await (supabase as any).from("saved_routes").delete().eq("route_id", routeId).eq("user_id", userId);
+  if (error) throw error;
+  revalidatePath("/collections");
+}
+
 export async function savePlace(placeSlug: string) {
   const { supabase, userId } = await requireUserId();
   const [placeId, collection] = await Promise.all([getPlaceId(supabase, placeSlug), getOrCreateSavedPlacesCollection(supabase, userId)]);
