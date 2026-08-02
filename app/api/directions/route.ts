@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { allowRequest } from "@/lib/rate-limit";
 
 type DirectionsRequest = {
   origin?: { longitude?: number; latitude?: number };
@@ -104,6 +105,7 @@ async function getOpenRouteServiceRoute(apiKey: string, origin: Required<Directi
 }
 
 export async function POST(request: Request) {
+  if (!allowRequest(request, "directions", 12)) return NextResponse.json({ error: "Too many route requests. Try again shortly." }, { status: 429 });
   let payload: DirectionsRequest;
   try { payload = await request.json(); } catch { return NextResponse.json({ error: "Invalid directions request." }, { status: 400 }); }
   const profile = payload.profile ?? "driving-car";

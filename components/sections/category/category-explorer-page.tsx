@@ -27,7 +27,7 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
   ];
 
   return (
-    <main className="min-h-screen bg-[#07111e] text-white">
+    <main className="min-h-screen bg-background text-foreground">
       <Navbar />
       <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-6 lg:px-10">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-400">
@@ -86,7 +86,7 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
             ))}
           </section>
 
-          <aside className="relative min-h-100 overflow-hidden rounded-2xl border border-slate-700 bg-[#10243a] lg:sticky lg:top-24 lg:h-[520px]">
+          <aside className="relative min-h-100 overflow-hidden rounded-2xl border border-border bg-card lg:sticky lg:top-24 lg:h-[520px]">
             <Image src="/hero-bg.jpg" alt="Map preview of the Pune and Lonavala region" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover opacity-35 saturate-50" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_42%,rgba(6,182,212,.25),transparent_28%),linear-gradient(135deg,rgba(5,20,35,.55),rgba(10,40,56,.85))]" />
             <div className="absolute left-5 top-5 flex items-center gap-2 rounded-lg bg-slate-950/75 px-3 py-2 text-sm font-medium backdrop-blur"><Search className="h-4 w-4 text-slate-400" />Map preview</div>

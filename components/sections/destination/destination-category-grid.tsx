@@ -16,9 +16,10 @@ const categoryIcons: Record<DestinationCategoryIcon, typeof Landmark> = {
 
 interface DestinationCategoryGridProps {
   categories: DestinationCategory[];
+  destinationSlug: string;
 }
 
-export function DestinationCategoryGrid({ categories }: DestinationCategoryGridProps) {
+export function DestinationCategoryGrid({ categories, destinationSlug }: DestinationCategoryGridProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {categories.map((category) => {
@@ -27,7 +28,7 @@ export function DestinationCategoryGrid({ categories }: DestinationCategoryGridP
         return (
           <Link
             key={category.id}
-            href={category.href}
+            href={`${category.href}${category.href.includes("?") ? "&" : "?"}destination=${encodeURIComponent(destinationSlug)}`}
             className="group flex items-center gap-3 rounded-xl border border-border/60 bg-card/60 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">

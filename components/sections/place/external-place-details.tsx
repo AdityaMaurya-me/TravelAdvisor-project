@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ExternalLink, MapPin, MessageCircle, Navigation, Star } from "lucide-react";
 
 import { ensureExternalGooglePlace, type ManagedExternalPlace } from "@/app/actions/external-places";
@@ -24,6 +25,7 @@ type ExternalPlaceDetailsProps = {
 
 export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back to search" }: ExternalPlaceDetailsProps) {
   const { requireAuth } = useAuthModal();
+  const router = useRouter();
   const [managedPlace, setManagedPlace] = useState<ManagedExternalPlace | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
   const [featureMessage, setFeatureMessage] = useState("");
@@ -38,9 +40,13 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
   };
 
   const loadManagedPlace = useCallback(async () => {
-    const { data } = await supabase.from("places").select("id,slug").eq("google_place_id", place.id).maybeSingle();
+    const { data } = await supabase.from("places").select("id,slug,canonical_place_id").eq("google_place_id", place.id).maybeSingle();
+    if (data?.canonical_place_id) {
+      const { data: canonical } = await supabase.from("places").select("slug").eq("id", data.canonical_place_id).maybeSingle();
+      if (canonical?.slug) { router.replace(`/place/${canonical.slug}`); return; }
+    }
     setManagedPlace(data ? { id: data.id, slug: data.slug } : null);
-  }, [place.id]);
+  }, [place.id, router]);
 
   useEffect(() => {
     void loadManagedPlace();

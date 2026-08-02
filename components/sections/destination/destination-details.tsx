@@ -28,11 +28,11 @@ export function DestinationDetails({ destination, backHref, backLabel }: Destina
           <SectionHeader
             title={`Explore around ${destination.title}`}
             description="Find the places that make this destination worth the journey."
-            href="/categories"
+            href={`/categories?destination=${encodeURIComponent(destination.slug)}`}
             actionLabel="Browse categories"
           />
           <div className="mt-6">
-            <DestinationCategoryGrid categories={destination.categories} />
+            <DestinationCategoryGrid categories={destination.categories} destinationSlug={destination.slug} />
           </div>
           <div className="mt-8">
             <DetailMap markers={destination.mapPlaces} title={`${destination.title} explorer`} mode="destination" />

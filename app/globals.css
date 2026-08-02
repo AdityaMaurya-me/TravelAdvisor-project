@@ -159,8 +159,9 @@ html.light body {
 .light .text-white,
 .light [class~="text-white/80"],
 .light [class~="text-white/70"] { color: #102033 !important; }
-.light [class*="text-slate-"] { color: #334b62 !important; }
-.light [class*="text-cyan-"] { color: #087a91 !important; }
+.light [class*="text-slate-"],
+.light [class*="text-gray-"] { color: #263746 !important; }
+.light [class*="text-cyan-"] { color: #075d70 !important; }
 .light [class*="text-amber-"] { color: #8a5b00 !important; }
 .light [class*="text-red-"] { color: #b42318 !important; }
 
@@ -169,24 +170,77 @@ html.light body {
 .light [aria-current="page"],
 .light [aria-pressed="true"],
 .light .bg-cyan-400\/10,
-.light .bg-cyan-400\/15 { color: #075d70 !important; }
+.light .bg-cyan-400\/15 { color: #000 !important; }
+
+.light button[class*="bg-cyan-"],
+.light [role="button"][class*="bg-cyan-"] { color: #000 !important; }
+
+.light .travel-hero-image { display: none; }
+.light .travel-hero-image-light {
+  display: block;
+  background: url("/hero-travel-light.png") center / cover no-repeat;
+}
 
 .light .travel-hero-overlay {
-  background: linear-gradient(to right, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.66), rgb(255 255 255 / 0.16));
+  background: linear-gradient(to right, rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.38), rgb(255 255 255 / 0.04));
 }
 
 .light .travel-hero-fade {
   background: linear-gradient(to top, #f6f9fc 0%, rgb(246 249 252 / 0.94) 10%, rgb(246 249 252 / 0.62) 27%, transparent 60%);
 }
 
-.light .travel-hero-title { color: #102033; }
-.light .travel-hero-copy { color: rgb(16 32 51 / 0.82); }
+.light .travel-hero-title { color: #000; }
+.light .travel-hero-copy { color: rgb(16 24 32 / 0.86); }
 .light .travel-hero-chip {
   border-color: rgb(8 145 178 / 0.22);
-  background: rgb(255 255 255 / 0.68);
-  color: #143447;
+  background: rgb(255 255 255 / 0.82);
+  color: #263746;
 }
-.light .travel-hero-chip:hover { background: rgb(255 255 255 / 0.9); }
+.light .travel-hero-chip:hover { background: #fff; color: #000; }
+
+/* Legacy pages were built before the semantic background/card tokens were
+   introduced. These selectors deliberately translate their shared Tailwind
+   dark-surface utilities into the same light palette, so a route, detail,
+   community, collection, or profile page cannot remain visually dark merely
+   because it uses an older utility class. */
+.light [class*="bg-[#"],
+.light [class*="bg-black"] {
+  background-color: #f6f9fc !important;
+}
+
+.light [class*="bg-slate-950"],
+.light [class*="bg-gray-950"] {
+  background-color: #edf3f7 !important;
+}
+
+.light [class*="bg-slate-900"],
+.light [class*="bg-gray-900"] {
+  background-color: #ffffff !important;
+}
+
+.light [class*="bg-slate-800"],
+.light [class*="bg-gray-800"] {
+  background-color: #e8f0f5 !important;
+}
+
+.light [class*="border-slate-"],
+.light [class*="border-gray-"] {
+  border-color: #cad8e3 !important;
+}
+
+.light [class*="shadow-black"],
+.light [class*="shadow-slate-"] {
+  --tw-shadow-color: rgb(31 55 78 / 0.14) !important;
+}
+
+/* Preserve image readability and map presentation without leaving an entire
+   card or page dark in light mode. */
+.light .travel-map-marker,
+.light [data-map-canvas] { color-scheme: normal; }
+
+.light [class*="bg-black/"] { background-color: rgb(16 32 51 / 0.48) !important; }
+.light [class*="bg-slate-950/"] { background-color: rgb(237 243 247 / 0.92) !important; }
+.light [class*="bg-slate-900/"] { background-color: rgb(255 255 255 / 0.88) !important; }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {

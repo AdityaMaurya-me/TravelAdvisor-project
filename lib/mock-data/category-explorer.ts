@@ -100,10 +100,10 @@ export async function getCategoryExplorer(slug: string, destinationSlug?: string
   };
 }
 
-export async function getCategoryExplorers(): Promise<CategoryExplorer[]> {
+export async function getCategoryExplorers(destinationSlug?: string): Promise<CategoryExplorer[]> {
   const supabase = await createClient();
   const { data: categories } = await supabase.from("categories").select("slug").order("name");
-  const explorers = await Promise.all((categories ?? []).map((category) => getCategoryExplorer(category.slug)));
+  const explorers = await Promise.all((categories ?? []).map((category) => getCategoryExplorer(category.slug, destinationSlug)));
   return explorers.filter((category): category is CategoryExplorer => Boolean(category));
 }
 

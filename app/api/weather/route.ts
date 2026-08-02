@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { allowRequest } from "@/lib/rate-limit";
 
 export const revalidate = 900;
 
 export async function GET(request: NextRequest) {
+  if (!allowRequest(request, "weather", 30)) return NextResponse.json({ error: "Too many weather requests. Try again shortly." }, { status: 429 });
   const latitude = Number(request.nextUrl.searchParams.get("lat"));
   const longitude = Number(request.nextUrl.searchParams.get("lon"));
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return NextResponse.json({ error: "Valid coordinates are required." }, { status: 400 });

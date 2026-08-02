@@ -3,6 +3,18 @@
 import { revalidatePath } from "next/cache";
 
 import { requireUserId } from "@/app/actions/auth";
+import { logAdminAction } from "@/app/actions/admin-audit";
+
+async function canModerateCommunityContent(supabase: Awaited<ReturnType<typeof requireUserId>>["supabase"], userId: string) {
+  const { data, error } = await supabase
+    .from("curator_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.role === "admin";
+}
 
 export async function createCommunityTip(placeId: string, content: string, rating?: number | null, imageUrl?: string | null) {
   const cleanContent = content.trim();
@@ -27,8 +39,12 @@ export async function updateCommunityTip(tipId: string, content: string) {
 
 export async function deleteCommunityTip(tipId: string) {
   const { supabase, userId } = await requireUserId();
-  const { error } = await supabase.from("community_tips").delete().eq("id", tipId).eq("user_id", userId);
+  const isAdmin = await canModerateCommunityContent(supabase, userId);
+  let request = supabase.from("community_tips").delete().eq("id", tipId);
+  if (!isAdmin) request = request.eq("user_id", userId);
+  const { error } = await request;
   if (error) throw error;
+  if (isAdmin) await logAdminAction("delete_community_tip", "community_tip", tipId);
   revalidatePath("/community");
 }
 
@@ -78,12 +94,12 @@ export async function updateTipComment(commentId: string, content: string) {
 
 export async function deleteTipComment(commentId: string) {
   const { supabase, userId } = await requireUserId();
-  const { error } = await supabase
-    .from("community_tip_comments")
-    .delete()
-    .eq("id", commentId)
-    .eq("user_id", userId);
+  const isAdmin = await canModerateCommunityContent(supabase, userId);
+  let request = supabase.from("community_tip_comments").delete().eq("id", commentId);
+  if (!isAdmin) request = request.eq("user_id", userId);
+  const { error } = await request;
   if (error) throw error;
+  if (isAdmin) await logAdminAction("delete_community_comment", "community_tip_comment", commentId);
   revalidatePath("/community");
 }
 

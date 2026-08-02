@@ -28,6 +28,7 @@ import { findCategoryFromSearch, findCategoryPlaceFromSearch } from "@/lib/mock-
 import { getSearchResults } from "@/lib/mock-data/search";
 import { searchGooglePlaces } from "@/lib/google-places";
 import { SearchResultsPage } from "@/components/sections/search/search-results-page";
+import { createClient } from "@/lib/supabase/server";
 
 interface SearchLocationPageProps {
   params: Promise<{ location: string }>;
@@ -37,6 +38,10 @@ export default async function SearchLocationPage({
   params,
 }: SearchLocationPageProps) {
   const { location } = await params;
+  const query = decodeURIComponent(location).trim();
+  const supabase = await createClient();
+  const { data: exactPlace } = await supabase.from("places").select("slug,level,name").eq("is_published", true).ilike("name", query).maybeSingle();
+  if (exactPlace) redirect(exactPlace.level === "city" ? `/destination/${exactPlace.slug}` : `/place/${exactPlace.slug}`);
 
   // Static category route for the first front-end release. Database-backed
   // category results can replace this redirect later without changing URLs.

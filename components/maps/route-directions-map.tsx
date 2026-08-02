@@ -71,7 +71,7 @@ export function RouteDirectionsMap({ points, geometry, loading = false, error }:
   }, [bounds, geometry, mapInputKey, points]);
 
   const message = error || mapError;
-  return <section className="relative min-h-105 overflow-hidden rounded-2xl border border-slate-700 bg-[#0b2034]">
+  return <section className="relative min-h-105 overflow-hidden rounded-2xl border border-border bg-card">
     {mapTilerKey && points.length >= 2 ? <div ref={container} className="absolute inset-0" aria-label="Interactive route map" /> : <div className="absolute inset-0 grid place-items-center p-7 text-center text-sm leading-6 text-slate-300"><LocateFixed className="mb-3 h-7 w-7 text-cyan-300" />{loading ? "Calculating the fastest route…" : !mapTilerKey ? "Add NEXT_PUBLIC_MAPTILER_API_KEY to display the road map." : "Choose A and B, then calculate your road route."}</div>}
     {loading && mapTilerKey && points.length >= 2 && <div className="absolute inset-0 grid place-items-center bg-slate-950/45 text-sm text-cyan-100 backdrop-blur-sm">Updating route…</div>}
     {message && <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-amber-300/30 bg-slate-950/90 p-3 text-center text-sm text-amber-100 backdrop-blur">{message}</div>}

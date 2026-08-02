@@ -329,7 +329,7 @@ export function CollectionsPage() {
     : routeCollections;
 
   return (
-    <main className="min-h-screen bg-[#07111e] text-white">
+    <main className="min-h-screen bg-background text-foreground">
       <Navbar />
       <section className="mx-auto max-w-[1500px] px-4 py-10 sm:px-6 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-5">

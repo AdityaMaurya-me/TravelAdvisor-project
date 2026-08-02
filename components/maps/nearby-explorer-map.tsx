@@ -21,6 +21,8 @@ type NearbyPlace = {
 type LocationState = "idle" | "locating" | "loading" | "ready" | "error";
 
 const MAPTILER_API_KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+const NEARBY_SESSION_KEY = "traveladvisor:nearby-places";
+const NEARBY_SESSION_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readableDistance(distance: number) {
   return distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(distance < 10 ? 1 : 0)} km`;
@@ -38,6 +40,29 @@ export function NearbyExplorerMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selected = places.find((place) => place.id === selectedId) ?? places[0] ?? null;
+
+  // Keep the last successful nearby result while a visitor opens a place card
+  // and comes back home. It is intentionally session-like: pressing the
+  // location button always requests fresh GPS coordinates and fresh results.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(NEARBY_SESSION_KEY);
+      if (!saved) return;
+      const snapshot = JSON.parse(saved) as { savedAt?: number; origin?: { latitude: number; longitude: number }; places?: NearbyPlace[]; radius?: number; selectedId?: string; message?: string };
+      if (!snapshot.origin || !Array.isArray(snapshot.places) || !snapshot.savedAt || Date.now() - snapshot.savedAt > NEARBY_SESSION_MAX_AGE) return;
+      setOrigin(snapshot.origin);
+      setPlaces(snapshot.places);
+      setRadius(snapshot.radius ?? 25);
+      setSelectedId(snapshot.selectedId ?? snapshot.places[0]?.id ?? null);
+      setMessage(snapshot.message ?? `${snapshot.places.length} verified places near you.`);
+      setState("ready");
+    } catch { window.localStorage.removeItem(NEARBY_SESSION_KEY); }
+  }, []);
+
+  useEffect(() => {
+    if (state !== "ready" || !origin) return;
+    try { window.localStorage.setItem(NEARBY_SESSION_KEY, JSON.stringify({ savedAt: Date.now(), origin, places, radius, selectedId, message })); } catch { /* Storage can be unavailable in private browsing. */ }
+  }, [message, origin, places, radius, selectedId, state]);
 
   useEffect(() => {
     if (!origin || !element.current || !MAPTILER_API_KEY) return;

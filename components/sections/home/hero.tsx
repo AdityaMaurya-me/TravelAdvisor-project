@@ -30,7 +30,8 @@ export function Hero() {
     <section className="relative overflow-hidden">
       <PageContainer>
         <div className="relative min-h-168 overflow-hidden md:min-h-176 xl:min-h-184">
-          <Image src="/hero-travel-v2.png" alt="Monsoon road through the Sahyadri mountains" width={1920} height={1080} priority className="absolute inset-0 h-full w-full object-cover" />
+          <Image src="/hero-travel-v2.png" alt="Monsoon road through the Sahyadri mountains" width={1920} height={1080} priority className="travel-hero-image absolute inset-0 h-full w-full object-cover" />
+          <div className="travel-hero-image-light absolute inset-0" aria-hidden="true" />
           <div className="travel-hero-overlay pointer-events-none absolute inset-0 bg-linear-to-r from-[#06111d]/95 via-[#06111d]/72 to-[#06111d]/20" />
           {/* <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#06111d]/65 via-transparent to-transparent" /> */}
           <div className="travel-hero-fade pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,#07111e_0%,rgba(7,17,30,.97)_10%,rgba(7,17,30,.76)_25%,rgba(7,17,30,.28)_43%,transparent_58%)]" />
