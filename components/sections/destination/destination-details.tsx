@@ -7,6 +7,7 @@ import { DestinationHero } from "@/components/sections/destination/destination-h
 import { DetailMap } from "@/components/maps/detail-map";
 import { PlaceRailSection } from "@/components/sections/destination/place-rail-section";
 import { PlaceCommunityDiscussion } from "@/components/sections/place/place-community-discussion";
+import { ExternalDestinationCommunity } from "@/components/sections/destination/external-destination-community";
 import type { DestinationDetail } from "@/lib/mock-data/destinations";
 
 interface DestinationDetailsProps {
@@ -28,8 +29,8 @@ export function DestinationDetails({ destination, backHref, backLabel }: Destina
           <SectionHeader
             title={`Explore around ${destination.title}`}
             description="Find the places that make this destination worth the journey."
-            href={`/categories?destination=${encodeURIComponent(destination.slug)}`}
-            actionLabel="Browse categories"
+            href={destination.browseCategoriesHref ?? `/categories?destination=${encodeURIComponent(destination.slug)}`}
+            actionLabel={destination.isLive ? "Browse live categories" : "Browse categories"}
           />
           <div className="mt-6">
             <DestinationCategoryGrid categories={destination.categories} destinationSlug={destination.slug} />
@@ -39,7 +40,7 @@ export function DestinationDetails({ destination, backHref, backLabel }: Destina
           </div>
         </section>
 
-        {destination.routeHref && (
+        {destination.routeHref && !destination.isLive && (
           <PlaceRailSection
             title="On the way"
             description="Worthwhile stops to add to your journey."
@@ -49,15 +50,11 @@ export function DestinationDetails({ destination, backHref, backLabel }: Destina
           />
         )}
 
-        <PlaceRailSection
-          title="Community favorites"
-          description="Handpicked by travelers who know the area."
-          href="/community"
-          actionLabel="View community"
-          places={destination.communityFavorites}
-        />
+        {destination.isLive && <PlaceRailSection title={`Live places around ${destination.title}`} description="Current Google listings for this destination. Open a card for full details, saving, routes, and discussions." href={destination.livePlacesHref} actionLabel="View all live places" places={destination.communityFavorites} />}
 
-        <PlaceCommunityDiscussion placeSlug={destination.slug} placeName={destination.title} />
+        {!destination.isLive && destination.livePlaces && <PlaceRailSection title={`Live places around ${destination.title}`} description="Current Google listings near this destination. Open a card for full details, saving, routes, and discussions." href={destination.livePlacesHref ?? `/search/${encodeURIComponent(`places to visit in ${destination.title}`)}`} actionLabel="View all live places" places={destination.livePlaces} />}
+
+        {destination.isLive && destination.googlePlaceId ? <ExternalDestinationCommunity googlePlaceId={destination.googlePlaceId} placeName={destination.title} /> : <PlaceCommunityDiscussion placeSlug={destination.slug} placeName={destination.title} />}
       </PageContainer>
     </main>
   );

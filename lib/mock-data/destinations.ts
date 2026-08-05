@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDestinationMapMarkers, type DetailMapMarker } from "@/lib/data/detail-maps";
+import { countLiveDestinationCategories, getGoogleDestinationPlaces } from "@/lib/google-places";
 
 export type DestinationFactIcon =
   | "route"
@@ -39,6 +40,8 @@ export interface PlacePreview {
   href: string;
   distance?: string;
   description?: string;
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
 }
 
 export interface DestinationDetail {
@@ -55,6 +58,14 @@ export interface DestinationDetail {
   communityFavorites: PlacePreview[];
   mapPlaces: DetailMapMarker[];
   routeHref?: string;
+  /** Live destination records use the same page shell but are not curated. */
+  isLive?: boolean;
+  googlePlaceId?: string;
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
+  browseCategoriesHref?: string;
+  livePlacesHref?: string;
+  livePlaces?: PlacePreview[];
 }
 
 export interface DestinationSummary {
@@ -169,7 +180,7 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
   });
 
   const allChildren = (children ?? []).map(toPreview);
-  const [{ data: route }, mapPlaces] = await Promise.all([
+  const [{ data: route }, mapPlaces, liveGooglePlaces] = await Promise.all([
     supabase
     .from("routes")
     .select("slug")
@@ -177,7 +188,32 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     .limit(1)
     .maybeSingle(),
     getDestinationMapMarkers(place.id),
+    getGoogleDestinationPlaces(place.name, 8),
   ]);
+
+  const livePlaces = liveGooglePlaces
+    .filter((livePlace) => livePlace.name.trim().toLocaleLowerCase() !== place.name.trim().toLocaleLowerCase())
+    .map((livePlace) => ({
+      id: livePlace.id,
+      title: livePlace.name,
+      location: livePlace.address || place.name,
+      image: "/placeholder.jpg",
+      googlePhotoName: livePlace.photo?.name,
+      googlePhotoAuthor: livePlace.photo?.authorName,
+      href: `/discover/${encodeURIComponent(livePlace.id)}?from=${encodeURIComponent(`/destination/${place.slug}`)}&fromLabel=${encodeURIComponent(`Back to ${place.name}`)}`,
+    }));
+  const liveCategoryCounts = countLiveDestinationCategories(liveGooglePlaces);
+  const categoryMap = new Map(categories.map((category) => [category.id, category]));
+  liveCategoryCounts.forEach((liveCategory) => {
+    const existing = categoryMap.get(liveCategory.id);
+    categoryMap.set(liveCategory.id, {
+      id: liveCategory.id,
+      title: liveCategory.title,
+      placeCount: (existing?.placeCount ?? 0) + liveCategory.count,
+      icon: CATEGORY_ICON_MAP[liveCategory.id] ?? (liveCategory.id === "cafes" ? "cafe" : liveCategory.id === "local-food" ? "food" : liveCategory.id === "nature" ? "gem" : "landmark"),
+      href: `/search/${encodeURIComponent(`${liveCategory.query} in ${place.name}`)}`,
+    });
+  });
 
   return {
     slug: place.slug,
@@ -192,11 +228,13 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
       { label: "Best season", value: "Seasonal", detail: "Explore monthly highlights", icon: "calendar" },
       { label: "Typical budget", value: "Varies", detail: "Based on your plans", icon: "wallet" },
     ],
-    categories,
+    categories: Array.from(categoryMap.values()),
     routePlaces: allChildren.slice(0, 4),
     communityFavorites: allChildren.slice(0, 4),
     mapPlaces,
     routeHref: route ? `/route/${route.slug}` : undefined,
+    livePlaces,
+    livePlacesHref: `/search/${encodeURIComponent(`places to visit in ${place.name}`)}`,
   };
 }
 

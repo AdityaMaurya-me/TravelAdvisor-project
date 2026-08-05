@@ -29,13 +29,18 @@ export interface RoutePlaceOption {
   locationLabel: string;
   latitude: number;
   longitude: number;
+  image: string | null;
+  type: string;
+  isPetFriendly: boolean | null;
+  hasEvCharging: boolean | null;
+  typicalVisitMinutes: number | null;
 }
 
 export async function getRoutePlaceOptions(): Promise<RoutePlaceOption[]> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from("v_place_map_marker")
-    .select("id, slug, name, location_label, latitude, longitude")
+    .select("id, slug, name, location_label, latitude, longitude, cover_image, level, is_pet_friendly, has_ev_charging, typical_visit_minutes")
     .order("name")
     .limit(300);
 
@@ -44,7 +49,7 @@ export async function getRoutePlaceOptions(): Promise<RoutePlaceOption[]> {
     const latitude = Number(row.latitude);
     const longitude = Number(row.longitude);
     return row.id && row.slug && row.name && Number.isFinite(latitude) && Number.isFinite(longitude)
-      ? [{ id: row.id, slug: row.slug, name: row.name, locationLabel: row.location_label || "India", latitude, longitude }]
+      ? [{ id: row.id, slug: row.slug, name: row.name, locationLabel: row.location_label || "India", latitude, longitude, image: row.cover_image || null, type: row.level || "place", isPetFriendly: row.is_pet_friendly ?? null, hasEvCharging: row.has_ev_charging ?? null, typicalVisitMinutes: row.typical_visit_minutes ?? null }]
       : [];
   });
 }

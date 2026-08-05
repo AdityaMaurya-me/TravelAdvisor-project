@@ -26,12 +26,25 @@ import { getCategoryBySlug } from "@/lib/mock-data/categories";
 import { PlaceCard } from "@/components/cards/place-card";
 import { findCategoryFromSearch, findCategoryPlaceFromSearch } from "@/lib/mock-data/category-explorer";
 import { getSearchResults } from "@/lib/mock-data/search";
-import { searchGooglePlaces } from "@/lib/google-places";
+import { isGoogleDestinationPlace, searchGooglePlaces } from "@/lib/google-places";
 import { SearchResultsPage } from "@/components/sections/search/search-results-page";
 import { createClient } from "@/lib/supabase/server";
 
 interface SearchLocationPageProps {
   params: Promise<{ location: string }>;
+}
+
+const DESTINATION_ALIASES: Record<string, string> = { bangalore: "bengaluru", bombay: "mumbai", calcutta: "kolkata", madras: "chennai" };
+const CATEGORY_TERMS = new Set(["attraction", "attractions", "cafe", "cafes", "food", "restaurant", "restaurants", "waterfall", "waterfalls", "hotel", "hotels", "place", "places", "near"]);
+
+function destinationQueryKey(value: string) {
+  const key = value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "").trim();
+  return DESTINATION_ALIASES[key] ?? key;
+}
+
+function isBroadDestinationQuery(value: string) {
+  const words = value.toLocaleLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  return words.length > 0 && words.length <= 3 && words.every((word) => !CATEGORY_TERMS.has(word));
 }
 
 export default async function SearchLocationPage({
@@ -85,5 +98,11 @@ export default async function SearchLocationPage({
   }
 
   const [results, googlePlaces] = await Promise.all([getSearchResults(location), searchGooglePlaces(location)]);
+  const normalizedQuery = destinationQueryKey(query);
+  const liveDestination = googlePlaces.find((place) => isGoogleDestinationPlace(place) && (destinationQueryKey(place.name) === normalizedQuery || isBroadDestinationQuery(query)));
+  if (liveDestination) {
+    const params = new URLSearchParams({ name: liveDestination.name, address: liveDestination.address, from: "/", fromLabel: "Back to home", lat: String(liveDestination.latitude), lng: String(liveDestination.longitude) });
+    redirect(`/discover-destination/${encodeURIComponent(liveDestination.id)}?${params}`);
+  }
   return <SearchResultsPage query={location} results={results} googlePlaces={googlePlaces} />;
 }

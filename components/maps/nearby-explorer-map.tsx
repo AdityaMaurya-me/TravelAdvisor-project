@@ -38,6 +38,8 @@ export function NearbyExplorerMap() {
   const [places, setPlaces] = useState<NearbyPlace[]>([]);
   const [radius, setRadius] = useState(25);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [mapMessage, setMapMessage] = useState("");
 
   const selected = places.find((place) => place.id === selectedId) ?? places[0] ?? null;
 
@@ -67,10 +69,15 @@ export function NearbyExplorerMap() {
   useEffect(() => {
     if (!origin || !element.current || !MAPTILER_API_KEY) return;
 
+    let disposed = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    setMapStatus("loading");
+    setMapMessage("");
+
+      maptilersdk.config.apiKey = MAPTILER_API_KEY;
     const map = new maptilersdk.Map({
       container: element.current,
-      style: maptilersdk.MapStyle.STREETS_V2.DEFAULT,
-      apiKey: MAPTILER_API_KEY,
+      style: `https://api.maptiler.com/maps/streets-v4-dark/style.json?key=${encodeURIComponent(MAPTILER_API_KEY)}`,
       center: [origin.longitude, origin.latitude],
       zoom: 11,
       logSDKVersion: false,
@@ -78,12 +85,35 @@ export function NearbyExplorerMap() {
     mapRef.current = map;
     map.addControl(new maptilersdk.NavigationControl({ showCompass: false }), "bottom-right");
 
+    map.on("load", () => {
+      if (!disposed) setMapStatus("ready");
+    });
+    map.on("error", (event) => {
+      if (disposed) return;
+      const status = (event.error as { status?: number } | undefined)?.status;
+      setMapStatus("error");
+      setMapMessage(status === 401 || status === 403
+        ? "MapTiler rejected this browser key. Check its allowed origins, then restart the app."
+        : "The nearby map could not load. Check the MapTiler key and browser network connection.");
+    });
+    timeout = setTimeout(() => {
+      if (!disposed) {
+        setMapStatus((current) => {
+          if (current !== "loading") return current;
+          setMapMessage("The nearby map is taking too long to load. Check the MapTiler browser key and allowed origins.");
+          return "error";
+        });
+      }
+    }, 8000);
+
     const currentLocation = document.createElement("span");
     currentLocation.className = "travel-map-current-location";
     currentLocation.setAttribute("aria-label", "Your current location");
     new maptilersdk.Marker({ element: currentLocation }).setLngLat([origin.longitude, origin.latitude]).addTo(map);
 
     return () => {
+      disposed = true;
+      if (timeout) clearTimeout(timeout);
       markerRef.current.forEach((marker) => marker.remove());
       markerRef.current = [];
       map.remove();
@@ -166,7 +196,7 @@ export function NearbyExplorerMap() {
 
         <div className="overflow-hidden rounded-2xl border border-cyan-300/20 bg-card shadow-2xl shadow-cyan-950/20 lg:grid lg:grid-cols-[minmax(0,1.7fr)_22rem]">
           <div className="relative min-h-95 bg-card sm:min-h-120">
-            {origin && MAPTILER_API_KEY ? <div ref={element} className="absolute inset-0" aria-label="Interactive map of places near you" /> : <div className="absolute inset-0 grid place-items-center p-8 text-center text-sm leading-6 text-slate-300"><div><MapPin className="mx-auto mb-3 h-8 w-8 text-cyan-300" />{!MAPTILER_API_KEY ? "Add a valid MapTiler browser key to show the nearby map." : message}</div></div>}
+            {origin && MAPTILER_API_KEY ? <><div ref={element} className="absolute inset-0" aria-label="Interactive map of places near you" />{mapStatus !== "ready" && <div className="absolute inset-0 grid place-items-center bg-card/85 p-8 text-center text-sm leading-6 text-muted-foreground backdrop-blur-sm"><div>{mapStatus === "loading" && <LoaderCircle className="mx-auto mb-3 h-8 w-8 animate-spin text-cyan-300" />} {mapStatus === "error" && <AlertCircle className="mx-auto mb-3 h-8 w-8 text-rose-300" />}{mapMessage || "Loading the nearby map…"}</div></div>}</> : <div className="absolute inset-0 grid place-items-center p-8 text-center text-sm leading-6 text-slate-300"><div><MapPin className="mx-auto mb-3 h-8 w-8 text-cyan-300" />{!MAPTILER_API_KEY ? "Add a valid MapTiler browser key to show the nearby map." : message}</div></div>}
             {origin && !MAPTILER_API_KEY && <div className="absolute inset-x-5 bottom-5 rounded-xl border border-amber-300/20 bg-slate-950/80 p-3 text-xs text-amber-100 backdrop-blur">Places were found, but the map needs a valid MapTiler browser key.</div>}
           </div>
           <div className="border-t border-border lg:border-l lg:border-t-0">

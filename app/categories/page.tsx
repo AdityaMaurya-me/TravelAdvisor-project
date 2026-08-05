@@ -8,19 +8,23 @@ import { getCategoryCardImage } from "@/lib/mock-data/home";
 
 export const dynamic = "force-dynamic";
 
-export default async function CategoriesPage() {
-  const categories = await getCategoryExplorers();
+export default async function CategoriesPage({ searchParams }: { searchParams: Promise<{ destination?: string | string[] }> }) {
+  const query = await searchParams;
+  const destinationSlug = typeof query.destination === "string" ? query.destination : undefined;
+  const categories = await getCategoryExplorers(destinationSlug);
+  const destination = categories.find((category) => category.destination)?.destination;
+  const destinationQuery = destinationSlug ? `?destination=${encodeURIComponent(destinationSlug)}` : "";
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <p className="text-sm font-medium text-cyan-300">Find your next kind of stop</p>
-        <h1 className="mt-2 text-4xl font-bold">Explore by category</h1>
+        <p className="text-sm font-medium text-cyan-300">{destination ? `Explore around ${destination.title}` : "Find your next kind of stop"}</p>
+        <h1 className="mt-2 text-4xl font-bold">{destination ? `${destination.title} by category` : "Explore by category"}</h1>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
             <Link
               key={category.slug}
-              href={`/categories/${category.slug}`}
+              href={`/categories/${category.slug}${destinationQuery}`}
               className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:border-cyan-400/60 hover:shadow-xl"
             >
               <div className="relative aspect-[16/9] overflow-hidden">
@@ -34,7 +38,7 @@ export default async function CategoriesPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
               </div>
               <div className="p-6">
-                <p className="text-sm text-cyan-300">{category.placeCount} places</p>
+                <p className="text-sm text-cyan-300">{category.placeCount} places{destination ? ` in ${destination.title}` : ""}</p>
                 <h2 className="mt-2 text-2xl font-semibold">{category.title}</h2>
                 <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
               </div>

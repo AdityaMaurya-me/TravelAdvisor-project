@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck } from "lucide-react";
 
 import { SaveDestinationButton } from "@/components/ui/save-destination-button";
+import { PlacePhoto } from "@/components/ui/place-photo";
 import { UniversalBackLink } from "@/components/navigation/universal-back-link";
 import type { PlaceDetail } from "@/lib/mock-data/places";
 
@@ -17,17 +17,27 @@ interface PlaceHeroProps {
 const MAX_VISIBLE_THUMBNAILS = 4;
 
 export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
-  const [activeImage, setActiveImage] = useState(place.images[0]);
+  // Empty image rows can exist while an admin is editing a place. Never pass
+  // them to next/image: an empty src makes the browser request the page itself.
+  const images = useMemo(() => (Array.isArray(place.images) ? place.images : []).filter((image): image is string => typeof image === "string" && image.trim().length > 0), [place.images]);
+  const [activeImage, setActiveImage] = useState<string | null>(place.coverImage || images[0] || null);
+  const heroImage = typeof activeImage === "string" && activeImage.trim().length > 0 ? activeImage.trim() : null;
 
-  const visibleThumbnails = place.images.slice(0, MAX_VISIBLE_THUMBNAILS);
-  const remainingCount = place.images.length - MAX_VISIBLE_THUMBNAILS;
+  useEffect(() => {
+    setActiveImage(place.coverImage || images[0] || null);
+  }, [images, place.coverImage]);
+
+  const visibleThumbnails = images.slice(0, MAX_VISIBLE_THUMBNAILS);
+  const remainingCount = images.length - MAX_VISIBLE_THUMBNAILS;
+  const defaultBackHref = place.destinationSlug ? `/destination/${place.destinationSlug}` : "/";
+  const defaultBackLabel = place.destinationTitle ? `Back to ${place.destinationTitle}` : "Back to home";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <UniversalBackLink
-          fallbackHref={backHref ?? `/destination/${place.destinationSlug}`}
-          fallbackLabel={backLabel ?? `Back to ${place.destinationTitle}`}
+          fallbackHref={backHref ?? defaultBackHref}
+          fallbackLabel={backLabel ?? defaultBackLabel}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <SaveDestinationButton placeSlug={place.slug} />
@@ -35,14 +45,13 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
 
       <div className="space-y-3">
         <div className="relative aspect-16/10 overflow-hidden rounded-2xl border border-border/60 bg-card">
-          <Image
-            src={activeImage}
+          {heroImage ? <PlacePhoto
+            src={heroImage}
             alt={place.title}
-            fill
-            priority
+            query={`${place.title} ${place.destinationTitle}`}
             sizes="(min-width: 1024px) 66vw, 100vw"
             className="object-cover"
-          />
+          /> : <div className="grid h-full place-items-center p-6 text-center text-sm text-muted-foreground">A photo for this place has not been added yet.</div>}
         </div>
 
         <div className="grid grid-cols-4 gap-3">
@@ -56,13 +65,13 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
                 type="button"
                 onClick={() => setActiveImage(image)}
                 aria-label={showOverlay ? `View ${remainingCount} more photos` : `Show photo ${index + 1} of ${place.title}`}
-                aria-pressed={activeImage === image}
+                aria-pressed={heroImage === image}
                 className="group relative aspect-square overflow-hidden rounded-lg border border-border/60 transition-all hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <Image
+                <PlacePhoto
                   src={image}
                   alt=""
-                  fill
+                  query={`${place.title} ${place.destinationTitle}`}
                   sizes="120px"
                   className="object-cover transition-transform duration-300 group-hover:scale-110"
                 />

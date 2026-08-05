@@ -13,9 +13,6 @@ const MAPTILER_API_KEY =
   process.env.NEXT_PUBLIC_MAPTILER_API_KEY ||
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-const mapStyleUrl = MAPTILER_API_KEY
-  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(MAPTILER_API_KEY)}`
-  : undefined;
 
 type DetailMapProps = {
   markers: DetailMapMarker[];
@@ -66,13 +63,24 @@ export function DetailMap({ markers, title, mode, className = "", routeHref }: D
 
     const initialiseMap = async () => {
       try {
+        maptilersdk.config.apiKey = MAPTILER_API_KEY;
         map = new maptilersdk.Map({
           container: mapElement,
-          style: mapStyleUrl!,
-          apiKey: MAPTILER_API_KEY,
+          // An explicit style document is more reliable than the SDK enum in
+          // MapLibre 5, which otherwise attempts to migrate an undefined
+          // projection and crashes before tiles can render.
+          style: `https://api.maptiler.com/maps/streets-v4-dark/style.json?key=${encodeURIComponent(MAPTILER_API_KEY)}`,
           center: [(bounds.west + bounds.east) / 2, (bounds.south + bounds.north) / 2],
           zoom: mode === "place" ? 15 : 10,
           logSDKVersion: false,
+        });
+        map.on("error", (event) => {
+          const status = (event.error as { status?: number } | undefined)?.status;
+          if (!disposed && (status === 401 || status === 403)) {
+            window.clearTimeout(loadingTimer);
+            setIsLoading(false);
+            setError("MapTiler rejected this browser key. Add this site to the key’s allowed origins, then restart the app.");
+          }
         });
         map.addControl(new maptilersdk.NavigationControl({ showCompass: false }), "bottom-right");
         map.on("load", () => {
@@ -143,7 +151,7 @@ export function DetailMap({ markers, title, mode, className = "", routeHref }: D
         {error && <div className="absolute inset-0 grid place-items-center bg-slate-950/70 p-5 text-center text-sm text-slate-200 backdrop-blur-sm">{error}</div>}
         {mode === "destination" && markers.length > 0 && <div className="pointer-events-none absolute left-4 top-4 rounded-lg border border-cyan-300/30 bg-slate-950/80 px-3 py-2 text-xs text-cyan-100 backdrop-blur"><Navigation className="mr-1 inline h-3.5 w-3.5" />Explorer area</div>}
       </div>
-      {selected && <Link href={`/route/mumbai-to-lonavala?destination=${encodeURIComponent(selected.slug)}`} className="flex items-center gap-3 px-5 py-4 transition hover:bg-accent"><span className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><MapPin className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">Plan a route to {selected.name}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">Set this as B · {selected.locationLabel}</span></span><Navigation className="h-4 w-4 shrink-0 text-cyan-300" /></Link>}
+      {selected && <Link href={routeHref ?? `/route/mumbai-to-lonavala?destination=${encodeURIComponent(selected.slug)}`} className="flex items-center gap-3 px-5 py-4 transition hover:bg-accent"><span className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><MapPin className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">Plan a route to {selected.name}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">Set this as B · {selected.locationLabel}</span></span><Navigation className="h-4 w-4 shrink-0 text-cyan-300" /></Link>}
     </section>
   );
 }

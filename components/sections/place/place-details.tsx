@@ -36,7 +36,7 @@ export function PlaceDetails({ place, backHref, backLabel }: PlaceDetailsProps) 
             <DetailMap markers={place.mapMarker ? [place.mapMarker] : []} title={place.title} mode="place" />
             <NearbyPlacesList
               places={place.nearbyPlaces}
-              href={`/destination/${place.destinationSlug}`}
+              href={place.destinationSlug ? `/destination/${place.destinationSlug}` : undefined}
               backHref={`/place/${place.slug}`}
               backLabel={`Back to ${place.title}`}
             />

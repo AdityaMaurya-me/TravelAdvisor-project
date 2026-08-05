@@ -9,6 +9,9 @@ interface ImageCardProps {
   alt: string;
   children: ReactNode;
   aspectRatio?: "portrait" | "landscape" | "square";
+  query?: string;
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
 }
 
 const aspectRatioClasses = {
@@ -23,6 +26,9 @@ export function ImageCard({
   alt,
   children,
   aspectRatio = "portrait",
+  query,
+  googlePhotoName,
+  googlePhotoAuthor,
 }: ImageCardProps) {
   return (
     <Link
@@ -48,7 +54,9 @@ export function ImageCard({
         <PlacePhoto
           src={image}
           alt={alt}
-          query={alt}
+          query={query ?? alt}
+          googlePhotoName={googlePhotoName}
+          googlePhotoAuthor={googlePhotoAuthor}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           className="
             object-cover

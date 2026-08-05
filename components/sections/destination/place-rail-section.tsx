@@ -25,11 +25,7 @@ export function PlaceRailSection({
         href={href}
         actionLabel={actionLabel}
       />
-      <div className="mt-6 grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-4 overflow-x-auto pb-3 sm:auto-cols-[minmax(17rem,1fr)] lg:grid-flow-row lg:grid-cols-4 lg:overflow-visible">
-        {places.map((place) => (
-          <PlaceCard key={place.id} place={place} />
-        ))}
-      </div>
+      {places.length ? <div className="mt-6 grid grid-flow-col auto-cols-[minmax(15rem,1fr)] gap-4 overflow-x-auto pb-3 sm:auto-cols-[minmax(17rem,1fr)] lg:grid-flow-row lg:grid-cols-4 lg:overflow-visible">{places.map((place) => <PlaceCard key={place.id} place={place} />)}</div> : <p className="mt-6 rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">Live listings are temporarily unavailable. Use the action above to search this destination directly.</p>}
     </section>
   );
 }

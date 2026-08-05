@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, MapPin, MessageCircle, Navigation, Star } from "lucide-react";
+import { ExternalLink, MapPin, MessageCircle, Navigation, Phone, Star, Globe2 } from "lucide-react";
 
 import { ensureExternalGooglePlace, type ManagedExternalPlace } from "@/app/actions/external-places";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
@@ -45,7 +45,16 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
       const { data: canonical } = await supabase.from("places").select("slug").eq("id", data.canonical_place_id).maybeSingle();
       if (canonical?.slug) { router.replace(`/place/${canonical.slug}`); return; }
     }
-    setManagedPlace(data ? { id: data.id, slug: data.slug } : null);
+    if (data) { setManagedPlace({ id: data.id, slug: data.slug }); return; }
+    // A signed-in visitor gets an internal external record automatically. This
+    // enables the existing save, travel-status, review, report, and discussion
+    // components without exposing Google results in curated browse sections.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setManagedPlace(null); return; }
+    setIsPreparing(true);
+    try { setManagedPlace(await ensureExternalGooglePlace(place.id)); }
+    catch (error) { setFeatureMessage(error instanceof Error ? error.message : "Live details are available, but TravelAdvisor features could not be prepared."); }
+    finally { setIsPreparing(false); }
   }, [place.id, router]);
 
   useEffect(() => {
@@ -91,7 +100,7 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
               </div>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground/85 sm:text-base">A live place listing sourced from Google. TravelAdvisor has not verified its details yet, so confirm opening hours and availability before you leave.</p>
             </section>
-            {managedPlace ? <PlaceCommunityDiscussion placeSlug={managedPlace.slug} placeName={place.name} /> : <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6"><div className="flex items-start gap-3"><div className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><MessageCircle className="h-5 w-5" /></div><div><h2 className="text-xl font-semibold">Community discussion</h2><p className="mt-1 text-sm text-slate-400">Be the first traveller to start a discussion about {place.name}.</p></div></div><button type="button" onClick={() => void enableFeatures()} disabled={isPreparing} className="mt-5 rounded-lg bg-cyan-400 px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-60">{isPreparing ? "Preparing discussion..." : "Write a review"}</button>{featureMessage && <p className="mt-4 text-sm text-amber-200">{featureMessage}</p>}</section>}
+            {managedPlace ? <PlaceCommunityDiscussion placeSlug={managedPlace.slug} placeName={place.name} /> : <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6"><div className="flex items-start gap-3"><div className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><MessageCircle className="h-5 w-5" /></div><div><h2 className="text-xl font-semibold">Community discussion</h2><p className="mt-1 text-sm text-slate-400">Be the first traveller to start a discussion about {place.name}.</p></div></div><button type="button" onClick={() => void enableFeatures()} disabled={isPreparing} className="mt-5 rounded-lg bg-cyan-400 px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-60">{isPreparing ? "Preparing discussion..." : "Sign in to write a review"}</button>{featureMessage && <p className="mt-4 text-sm text-amber-200">{featureMessage}</p>}</section>}
           </div>
           <aside className="space-y-5 lg:sticky lg:top-24">
             {managedPlace && <PlaceTravelStatus placeId={managedPlace.id} placeName={place.name} destinationName={place.address || "Google place"} />}
@@ -100,6 +109,9 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
               <div className="mt-4 space-y-4 text-sm">
                 <div className="flex gap-3"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" /><span>{place.address || "Address is not available."}</span></div>
                 {place.primaryType && <p className="rounded-lg bg-accent px-3 py-2 capitalize text-muted-foreground">{place.primaryType.replace(/_/g, " ")}</p>}
+                {place.priceLevel && <p className="rounded-lg bg-accent px-3 py-2 text-muted-foreground">Price level: {place.priceLevel.replace(/_/g, " ").toLowerCase()}</p>}
+                {place.phoneNumber && <a href={`tel:${place.phoneNumber.replace(/\s/g, "")}`} className="inline-flex items-center gap-2 text-sm font-medium text-cyan-300 transition hover:text-cyan-100"><Phone className="h-4 w-4" />{place.phoneNumber}</a>}
+                {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-cyan-300 transition hover:text-cyan-100"><Globe2 className="h-4 w-4" />Official website</a>}
                 {place.googleMapsUri && <a href={place.googleMapsUri} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-cyan-300 transition hover:text-cyan-100"><ExternalLink className="h-4 w-4" />View in Google Maps</a>}
               </div>
             </section>

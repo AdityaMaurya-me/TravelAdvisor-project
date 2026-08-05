@@ -13,7 +13,7 @@ export default async function JourneyRoute({ params, searchParams }: { params: P
   const places = await getRoutePlaceOptions();
   const latitude = Number(query.destinationLat); const longitude = Number(query.destinationLng);
   const namedExternalDestination: RoutePlaceOption | undefined = query.destinationName && Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
-    ? { id: `google-${query.destinationName}-${latitude}-${longitude}`, slug: "google-place", name: query.destinationName, locationLabel: "Google place", latitude, longitude }
+    ? { id: `google-${query.destinationName}-${latitude}-${longitude}`, slug: "google-place", name: query.destinationName, locationLabel: "Google place", latitude, longitude, image: null, type: "place", isPetFriendly: null, hasEvCharging: null, typicalVisitMinutes: null }
     : undefined;
   const googlePlaceId = query.destination?.startsWith("google-") ? query.destination.slice("google-".length) : undefined;
   const googlePlace = googlePlaceId ? await getGooglePlaceById(googlePlaceId) : null;
@@ -24,6 +24,11 @@ export default async function JourneyRoute({ params, searchParams }: { params: P
     locationLabel: googlePlace.address || "Google place",
     latitude: googlePlace.latitude,
     longitude: googlePlace.longitude,
+    image: googlePlace.photoUrl || null,
+    type: googlePlace.primaryType || "place",
+    isPetFriendly: null,
+    hasEvCharging: null,
+    typicalVisitMinutes: null,
   } : undefined);
   return <JourneyRoutePage route={route} places={places} initialOriginSlug={query.origin} initialDestinationSlug={query.destination} initialExternalDestination={externalDestination} backHref={backHref} backLabel={query.fromLabel} />;
 }

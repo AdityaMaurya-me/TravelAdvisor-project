@@ -17,6 +17,9 @@ export function PlaceCard({ place, backHref, backLabel }: PlaceCardProps) {
       href={href}
       image={place.image}
       alt={place.title}
+      query={`${place.title} ${place.location}`}
+      googlePhotoName={place.googlePhotoName}
+      googlePhotoAuthor={place.googlePhotoAuthor}
       aspectRatio="landscape"
     >
       <div className="space-y-2 p-3">

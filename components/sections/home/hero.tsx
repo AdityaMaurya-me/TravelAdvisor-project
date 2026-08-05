@@ -16,6 +16,18 @@ const POPULAR_SEARCHES = [
   { label: "Hidden Places", href: "/search/hidden-places" },
 ];
 
+function liveDestinationHref(place: { id: string; name: string; address: string; latitude?: number; longitude?: number }) {
+  const params = new URLSearchParams({ name: place.name, address: place.address, from: "/", fromLabel: "Back to home" });
+  if (Number.isFinite(place.latitude) && Number.isFinite(place.longitude)) { params.set("lat", String(place.latitude)); params.set("lng", String(place.longitude)); }
+  return `/discover-destination/${encodeURIComponent(place.id)}?${params}`;
+}
+
+function livePlaceHref(place: { id: string; name: string; address: string; latitude?: number; longitude?: number }) {
+  const params = new URLSearchParams({ name: place.name, address: place.address, from: "/", fromLabel: "Back to home" });
+  if (Number.isFinite(place.latitude) && Number.isFinite(place.longitude)) { params.set("lat", String(place.latitude)); params.set("lng", String(place.longitude)); }
+  return `/discover/${encodeURIComponent(place.id)}?${params}`;
+}
+
 export function Hero() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,9 +39,9 @@ export function Hero() {
   };
 
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative z-20 overflow-visible">
       <PageContainer>
-        <div className="relative min-h-168 overflow-hidden md:min-h-176 xl:min-h-184">
+        <div className="relative min-h-168 overflow-visible md:min-h-176 xl:min-h-184">
           <Image src="/hero-travel-v2.png" alt="Monsoon road through the Sahyadri mountains" width={1920} height={1080} priority className="travel-hero-image absolute inset-0 h-full w-full object-cover" />
           <div className="travel-hero-image-light absolute inset-0" aria-hidden="true" />
           <div className="travel-hero-overlay pointer-events-none absolute inset-0 bg-linear-to-r from-[#06111d]/95 via-[#06111d]/72 to-[#06111d]/20" />
@@ -39,7 +51,7 @@ export function Hero() {
             <div className="w-full max-w-7xl px-6 md:px-12 lg:px-20 xl:px-28">
               <h1 className="travel-hero-title max-w-6xl text-4xl font-bold leading-tight tracking-tight text-white md:text-6xl xl:text-7xl 2xl:text-8xl">Discover Every Place Worth Stopping For</h1>
               <p className="travel-hero-copy mt-5 max-w-2xl text-lg leading-8 text-white/80 xl:text-xl">Search any place, route, or experience and find attractions, food, hidden gems, and more.</p>
-              <div className="mt-8 w-full max-w-4xl"><SearchBar value={searchQuery} onChange={setSearchQuery} onSubmit={handleSearch} onPlaceSelect={(place) => router.push(`/discover/${encodeURIComponent(place.id)}?from=/&fromLabel=Back%20to%20home`)} /></div>
+              <div className="relative z-40 mt-8 w-full max-w-4xl"><SearchBar value={searchQuery} onChange={setSearchQuery} onSubmit={handleSearch} onPlaceSelect={(place) => router.push(place.source === "curated" && place.slug ? `${place.level === "city" ? "/destination" : "/place"}/${place.slug}` : place.source === "google" && place.kind === "destination" ? liveDestinationHref(place) : place.source === "google" ? livePlaceHref(place) : `/discover/${encodeURIComponent(place.id)}?from=/&fromLabel=Back%20to%20home`)} /></div>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 {POPULAR_SEARCHES.map((item) => <Link key={item.label} href={item.href} className="travel-hero-chip rounded-full border border-white/10 bg-white/10 px-6 py-2 text-sm text-white transition-colors duration-200 hover:bg-white/20">{item.label}</Link>)}
               </div>
