@@ -49,6 +49,8 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
             src={heroImage}
             alt={place.title}
             query={`${place.title} ${place.destinationTitle}`}
+            googlePhotoName={place.googlePhotoName}
+            googlePhotoAuthor={place.googlePhotoAuthor}
             sizes="(min-width: 1024px) 66vw, 100vw"
             className="object-cover"
           /> : <div className="grid h-full place-items-center p-6 text-center text-sm text-muted-foreground">A photo for this place has not been added yet.</div>}
@@ -72,6 +74,8 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
                   src={image}
                   alt=""
                   query={`${place.title} ${place.destinationTitle}`}
+                  googlePhotoName={place.googlePhotoName}
+                  googlePhotoAuthor={place.googlePhotoAuthor}
                   sizes="120px"
                   className="object-cover transition-transform duration-300 group-hover:scale-110"
                 />

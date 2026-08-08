@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          target_id: string | null
+          target_label: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_label?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      ai_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          cards: Json
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          cards?: Json
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          cards?: Json
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           icon: string | null
@@ -74,6 +166,13 @@ export type Database = {
             columns: ["place_id"]
             isOneToOne: false
             referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_items_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
             referencedColumns: ["id"]
           },
           {
@@ -204,6 +303,45 @@ export type Database = {
           },
         ]
       }
+      community_tip_reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          tip_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id: string
+          tip_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          tip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_tip_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_tip_reports_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "community_tips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_tip_votes: {
         Row: {
           created_at: string
@@ -283,6 +421,13 @@ export type Database = {
             foreignKeyName: "community_tips_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_tips_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
             referencedRelation: "v_place_relations_card"
             referencedColumns: ["id"]
           },
@@ -298,6 +443,241 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curator_roles: {
+        Row: {
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      location_candidates: {
+        Row: {
+          canonical_google_address: string | null
+          canonical_google_name: string | null
+          canonical_google_place_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          destination_id: string | null
+          entry_fee: string | null
+          has_ev_charging: boolean | null
+          has_parking: boolean | null
+          has_washroom: boolean | null
+          id: string
+          image_attribution: string | null
+          image_url: string | null
+          image_verification_notes: string | null
+          image_verification_status: string
+          image_verified_at: string | null
+          image_verified_by: string | null
+          is_pet_friendly: boolean | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          opening_hours: string | null
+          phone: string | null
+          proposed_categories: string[]
+          published_place_id: string | null
+          review_notes: string | null
+          source: string
+          source_reference: string | null
+          source_url: string | null
+          status: string
+          typical_visit_minutes: number | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          canonical_google_address?: string | null
+          canonical_google_name?: string | null
+          canonical_google_place_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          destination_id?: string | null
+          entry_fee?: string | null
+          has_ev_charging?: boolean | null
+          has_parking?: boolean | null
+          has_washroom?: boolean | null
+          id?: string
+          image_attribution?: string | null
+          image_url?: string | null
+          image_verification_notes?: string | null
+          image_verification_status?: string
+          image_verified_at?: string | null
+          image_verified_by?: string | null
+          is_pet_friendly?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          opening_hours?: string | null
+          phone?: string | null
+          proposed_categories?: string[]
+          published_place_id?: string | null
+          review_notes?: string | null
+          source?: string
+          source_reference?: string | null
+          source_url?: string | null
+          status?: string
+          typical_visit_minutes?: number | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          canonical_google_address?: string | null
+          canonical_google_name?: string | null
+          canonical_google_place_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          destination_id?: string | null
+          entry_fee?: string | null
+          has_ev_charging?: boolean | null
+          has_parking?: boolean | null
+          has_washroom?: boolean | null
+          id?: string
+          image_attribution?: string | null
+          image_url?: string | null
+          image_verification_notes?: string | null
+          image_verification_status?: string
+          image_verified_at?: string | null
+          image_verified_by?: string | null
+          is_pet_friendly?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          opening_hours?: string | null
+          phone?: string | null
+          proposed_categories?: string[]
+          published_place_id?: string | null
+          review_notes?: string | null
+          source?: string
+          source_reference?: string | null
+          source_url?: string | null
+          status?: string
+          typical_visit_minutes?: number | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_candidates_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_relations_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "v_route_stop_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_published_place_id_fkey"
+            columns: ["published_place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_published_place_id_fkey"
+            columns: ["published_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_published_place_id_fkey"
+            columns: ["published_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_published_place_id_fkey"
+            columns: ["published_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_relations_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_candidates_published_place_id_fkey"
+            columns: ["published_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_route_stop_card"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_review_events: {
+        Row: {
+          actor_id: string | null
+          candidate_id: string
+          created_at: string
+          event_type: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          candidate_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          candidate_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_review_events_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "location_candidates"
             referencedColumns: ["id"]
           },
         ]
@@ -342,6 +722,13 @@ export type Database = {
             columns: ["place_id"]
             isOneToOne: false
             referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_categories_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
             referencedColumns: ["id"]
           },
           {
@@ -395,6 +782,13 @@ export type Database = {
             columns: ["place_id"]
             isOneToOne: false
             referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_images_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
             referencedColumns: ["id"]
           },
           {
@@ -457,6 +851,13 @@ export type Database = {
             foreignKeyName: "place_relations_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_relations_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
             referencedRelation: "v_place_relations_card"
             referencedColumns: ["id"]
           },
@@ -485,6 +886,13 @@ export type Database = {
             foreignKeyName: "place_relations_related_place_id_fkey"
             columns: ["related_place_id"]
             isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_relations_related_place_id_fkey"
+            columns: ["related_place_id"]
+            isOneToOne: false
             referencedRelation: "v_place_relations_card"
             referencedColumns: ["id"]
           },
@@ -500,80 +908,154 @@ export type Database = {
       places: {
         Row: {
           address: string | null
+          canonical_place_id: string | null
           city: string | null
           country: string | null
           cover_image: string | null
           created_at: string | null
           description: string | null
+          entry_fee: string | null
+          external_details: Json
+          external_source: string | null
           facts: Json | null
           google_place_id: string | null
+          has_ev_charging: boolean | null
           has_parking: boolean | null
           has_washroom: boolean | null
           id: string
+          is_external: boolean
           is_pet_friendly: boolean | null
           is_published: boolean | null
+          last_verified_at: string | null
           level: Database["public"]["Enums"]["place_level"]
           location: unknown
           name: string
+          opening_hours: string | null
           parent_id: string | null
+          phone: string | null
           rating: number | null
           review_count: number | null
           search_vector: unknown
           slug: string
+          source_reference: string | null
+          source_url: string | null
           state: string | null
+          typical_visit_minutes: number | null
           updated_at: string | null
+          website_url: string | null
         }
         Insert: {
           address?: string | null
+          canonical_place_id?: string | null
           city?: string | null
           country?: string | null
           cover_image?: string | null
           created_at?: string | null
           description?: string | null
+          entry_fee?: string | null
+          external_details?: Json
+          external_source?: string | null
           facts?: Json | null
           google_place_id?: string | null
+          has_ev_charging?: boolean | null
           has_parking?: boolean | null
           has_washroom?: boolean | null
           id?: string
+          is_external?: boolean
           is_pet_friendly?: boolean | null
           is_published?: boolean | null
+          last_verified_at?: string | null
           level: Database["public"]["Enums"]["place_level"]
           location?: unknown
           name: string
+          opening_hours?: string | null
           parent_id?: string | null
+          phone?: string | null
           rating?: number | null
           review_count?: number | null
           search_vector?: unknown
           slug: string
+          source_reference?: string | null
+          source_url?: string | null
           state?: string | null
+          typical_visit_minutes?: number | null
           updated_at?: string | null
+          website_url?: string | null
         }
         Update: {
           address?: string | null
+          canonical_place_id?: string | null
           city?: string | null
           country?: string | null
           cover_image?: string | null
           created_at?: string | null
           description?: string | null
+          entry_fee?: string | null
+          external_details?: Json
+          external_source?: string | null
           facts?: Json | null
           google_place_id?: string | null
+          has_ev_charging?: boolean | null
           has_parking?: boolean | null
           has_washroom?: boolean | null
           id?: string
+          is_external?: boolean
           is_pet_friendly?: boolean | null
           is_published?: boolean | null
+          last_verified_at?: string | null
           level?: Database["public"]["Enums"]["place_level"]
           location?: unknown
           name?: string
+          opening_hours?: string | null
           parent_id?: string | null
+          phone?: string | null
           rating?: number | null
           review_count?: number | null
           search_vector?: unknown
           slug?: string
+          source_reference?: string | null
+          source_url?: string | null
           state?: string | null
+          typical_visit_minutes?: number | null
           updated_at?: string | null
+          website_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "places_canonical_place_id_fkey"
+            columns: ["canonical_place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_canonical_place_id_fkey"
+            columns: ["canonical_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_canonical_place_id_fkey"
+            columns: ["canonical_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_canonical_place_id_fkey"
+            columns: ["canonical_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_relations_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_canonical_place_id_fkey"
+            columns: ["canonical_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_route_stop_card"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "places_parent_id_fkey"
             columns: ["parent_id"]
@@ -586,6 +1068,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
             referencedColumns: ["id"]
           },
           {
@@ -669,6 +1158,13 @@ export type Database = {
             foreignKeyName: "reviews_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
             referencedRelation: "v_place_relations_card"
             referencedColumns: ["id"]
           },
@@ -687,6 +1183,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      route_collection_items: {
+        Row: {
+          collection_id: string
+          created_at: string
+          route_id: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          route_id: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          route_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "route_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_collection_items_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_collection_trip_plans: {
+        Row: {
+          collection_id: string
+          created_at: string
+          trip_plan_id: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          trip_plan_id: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          trip_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_collection_trip_plans_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "route_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_collection_trip_plans_trip_plan_id_fkey"
+            columns: ["trip_plan_id"]
+            isOneToOne: false
+            referencedRelation: "trip_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_collections: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       route_stops: {
         Row: {
@@ -723,6 +1309,13 @@ export type Database = {
             columns: ["place_id"]
             isOneToOne: false
             referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
             referencedColumns: ["id"]
           },
           {
@@ -801,6 +1394,13 @@ export type Database = {
             foreignKeyName: "routes_end_place_id_fkey"
             columns: ["end_place_id"]
             isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routes_end_place_id_fkey"
+            columns: ["end_place_id"]
+            isOneToOne: false
             referencedRelation: "v_place_relations_card"
             referencedColumns: ["id"]
           },
@@ -823,6 +1423,13 @@ export type Database = {
             columns: ["start_place_id"]
             isOneToOne: false
             referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routes_start_place_id_fkey"
+            columns: ["start_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
             referencedColumns: ["id"]
           },
           {
@@ -897,6 +1504,229 @@ export type Database = {
           srtext?: string | null
         }
         Relationships: []
+      }
+      trip_plans: {
+        Row: {
+          buffer_km: number
+          created_at: string
+          destination_place_id: string | null
+          destination_snapshot: Json | null
+          id: string
+          is_public: boolean
+          origin_place_id: string | null
+          origin_snapshot: Json | null
+          share_token: string
+          stops: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buffer_km: number
+          created_at?: string
+          destination_place_id?: string | null
+          destination_snapshot?: Json | null
+          id?: string
+          is_public?: boolean
+          origin_place_id?: string | null
+          origin_snapshot?: Json | null
+          share_token?: string
+          stops?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buffer_km?: number
+          created_at?: string
+          destination_place_id?: string | null
+          destination_snapshot?: Json | null
+          id?: string
+          is_public?: boolean
+          origin_place_id?: string | null
+          origin_snapshot?: Json | null
+          share_token?: string
+          stops?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_plans_destination_place_id_fkey"
+            columns: ["destination_place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_destination_place_id_fkey"
+            columns: ["destination_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_destination_place_id_fkey"
+            columns: ["destination_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_destination_place_id_fkey"
+            columns: ["destination_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_relations_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_destination_place_id_fkey"
+            columns: ["destination_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_route_stop_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_origin_place_id_fkey"
+            columns: ["origin_place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_origin_place_id_fkey"
+            columns: ["origin_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_origin_place_id_fkey"
+            columns: ["origin_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_origin_place_id_fkey"
+            columns: ["origin_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_relations_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_plans_origin_place_id_fkey"
+            columns: ["origin_place_id"]
+            isOneToOne: false
+            referencedRelation: "v_route_stop_card"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notifications: {
+        Row: {
+          body: string | null
+          candidate_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          recipient_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          body?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          recipient_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          body?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          recipient_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "location_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_place_status: {
+        Row: {
+          created_at: string
+          personal_note: string | null
+          place_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          visited_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          personal_note?: string | null
+          place_id: string
+          status: string
+          updated_at?: string
+          user_id: string
+          visited_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          personal_note?: string | null
+          place_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          visited_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_place_status_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_place_status_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_place_status_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_place_status_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_relations_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_place_status_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_route_stop_card"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -991,6 +1821,99 @@ export type Database = {
         }
         Relationships: []
       }
+      v_place_map_marker: {
+        Row: {
+          cover_image: string | null
+          entry_fee: string | null
+          has_ev_charging: boolean | null
+          has_parking: boolean | null
+          has_washroom: boolean | null
+          id: string | null
+          is_pet_friendly: boolean | null
+          latitude: number | null
+          level: Database["public"]["Enums"]["place_level"] | null
+          location_label: string | null
+          longitude: number | null
+          name: string | null
+          parent_id: string | null
+          rating: number | null
+          slug: string | null
+          typical_visit_minutes: number | null
+        }
+        Insert: {
+          cover_image?: string | null
+          entry_fee?: string | null
+          has_ev_charging?: boolean | null
+          has_parking?: boolean | null
+          has_washroom?: boolean | null
+          id?: string | null
+          is_pet_friendly?: boolean | null
+          latitude?: never
+          level?: Database["public"]["Enums"]["place_level"] | null
+          location_label?: never
+          longitude?: never
+          name?: string | null
+          parent_id?: string | null
+          rating?: number | null
+          slug?: string | null
+          typical_visit_minutes?: number | null
+        }
+        Update: {
+          cover_image?: string | null
+          entry_fee?: string | null
+          has_ev_charging?: boolean | null
+          has_parking?: boolean | null
+          has_washroom?: boolean | null
+          id?: string | null
+          is_pet_friendly?: boolean | null
+          latitude?: never
+          level?: Database["public"]["Enums"]["place_level"] | null
+          location_label?: never
+          longitude?: never
+          name?: string | null
+          parent_id?: string | null
+          rating?: number | null
+          slug?: string | null
+          typical_visit_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "places_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_relations_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_route_stop_card"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_place_relations_card: {
         Row: {
           category_slugs: string[] | null
@@ -1021,6 +1944,13 @@ export type Database = {
             columns: ["place_id"]
             isOneToOne: false
             referencedRelation: "v_place_card"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_relations_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "v_place_map_marker"
             referencedColumns: ["id"]
           },
           {
@@ -1227,6 +2157,19 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
+      ensure_external_google_place: {
+        Args: {
+          p_address: string
+          p_google_place_id: string
+          p_latitude: number
+          p_longitude: number
+          p_name: string
+        }
+        Returns: {
+          id: string
+          slug: string
+        }[]
+      }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
@@ -1336,6 +2279,16 @@ export type Database = {
           route_slug: string
         }[]
       }
+      get_shared_trip_plan: {
+        Args: { p_share_token: string }
+        Returns: {
+          buffer_km: number
+          created_at: string
+          destination_name: string
+          origin_name: string
+          stops: Json
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
@@ -1378,6 +2331,14 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      publish_location_candidate: {
+        Args: {
+          p_candidate_id: string
+          p_level?: Database["public"]["Enums"]["place_level"]
+          p_slug: string
+        }
+        Returns: string
+      }
       search_places: {
         Args: { q: string; result_limit?: number }
         Returns: {
@@ -2044,6 +3005,23 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      upsert_external_google_place_details: {
+        Args: {
+          p_address: string
+          p_details: Json
+          p_google_place_id: string
+          p_latitude: number
+          p_longitude: number
+          p_name: string
+          p_photo_url: string
+          p_rating: number
+          p_review_count: number
+        }
+        Returns: {
+          id: string
+          slug: string
+        }[]
       }
     }
     Enums: {

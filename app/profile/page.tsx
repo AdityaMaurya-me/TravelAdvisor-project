@@ -16,6 +16,8 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -57,16 +59,36 @@ export default function ProfilePage() {
       return;
     }
 
-    const path = `${id}/avatar-${Date.now()}.${file.name.split(".").pop()}`;
-    const { error } = await supabase.storage.from("profile-avatars").upload(path, file, { upsert: true });
-    if (error) {
-      setMessage(error.message);
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Choose an image smaller than 5 MB.");
       return;
     }
 
-    const { data } = supabase.storage.from("profile-avatars").getPublicUrl(path);
-    setAvatar(data.publicUrl);
-    setMessage("Photo ready. Save profile to apply it everywhere.");
+    const localPreview = URL.createObjectURL(file);
+    setAvatarPreview(localPreview);
+    setIsUploading(true);
+    setMessage("Uploading profile photo…");
+    try {
+      const extension = file.name.split(".").pop() || "jpg";
+      const path = `${id}/avatar-${Date.now()}.${extension}`;
+      const { error } = await supabase.storage.from("profile-avatars").upload(path, file, { upsert: false });
+      if (error) throw error;
+
+      const { data } = supabase.storage.from("profile-avatars").getPublicUrl(path);
+      const nextAvatar = data.publicUrl;
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({ id, display_name: name.trim() || email.split("@")[0] || "Traveller", avatar_url: nextAvatar });
+      if (profileError) throw profileError;
+      setAvatar(nextAvatar);
+      URL.revokeObjectURL(localPreview);
+      setAvatarPreview("");
+      setMessage("Profile photo updated everywhere.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "We could not upload that photo. Please try another image.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const openDeleteDialog = () => {
@@ -100,19 +122,20 @@ export default function ProfilePage() {
       <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
         <div className="flex items-center gap-6">
           <div className="relative h-32 w-32 overflow-hidden rounded-full bg-slate-800">
-            {avatar ? (
-              <Image src={avatar} alt="Profile photo" fill sizes="160px" className="object-cover" />
+            {avatarPreview || avatar ? (
+              avatarPreview ? <img src={avatarPreview} alt="Selected profile photo preview" className="h-full w-full object-cover" /> : <Image src={avatar} alt="Profile photo" fill sizes="160px" className="object-cover" />
             ) : (
               <div className="grid h-full place-items-center text-4xl font-bold text-cyan-300">
                 {name.slice(0, 1).toUpperCase()}
               </div>
             )}
             <label className="absolute inset-0 grid cursor-pointer place-items-center bg-black/50 text-sm opacity-0 transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100">
-              Change photo
+              {isUploading ? "Uploading…" : "Change photo"}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
-                onChange={(event) => void upload(event.target.files?.[0])}
+                disabled={isUploading}
+                onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ""; }}
                 className="sr-only"
               />
             </label>

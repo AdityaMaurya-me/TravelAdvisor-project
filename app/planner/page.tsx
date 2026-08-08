@@ -10,6 +10,7 @@ import { useAuthModal } from "@/components/auth/auth-modal-provider";
 import { saveTripPlan } from "@/app/actions/trip-plans";
 import { ShareTripButton } from "@/components/sections/collections/share-trip-button";
 import { SaveTripToRouteCollection } from "@/components/sections/collections/save-trip-to-route-collection";
+import { readJourneyPlannerDraft, writeJourneyPlannerDraft, type JourneyPlannerBudgetFilter, type JourneyPlannerFilter } from "@/lib/journey-planner-draft";
 import { supabase } from "@/lib/supabase";
 
 type PlaceOption = {
@@ -56,7 +57,7 @@ const distanceToCorridorKm = (point: PlaceOption, start: PlaceOption, end: Place
   return Math.hypot(px - ratio * ex, py - ratio * ey);
 };
 
-type BudgetFilter = "all" | "free" | "under-200" | "200-plus";
+type BudgetFilter = JourneyPlannerBudgetFilter;
 
 function budgetBand(entryFee: string | null) {
   if (!entryFee?.trim()) return "unknown" as const;
@@ -91,12 +92,13 @@ export default function PlannerPage() {
   const [originText, setOriginText] = useState("");
   const [destinationText, setDestinationText] = useState("");
   const [bufferKm, setBufferKm] = useState(5);
-  const [filter, setFilter] = useState<"all" | "pet" | "ev" | "quick">("all");
+  const [filter, setFilter] = useState<JourneyPlannerFilter>("all");
   const [budgetFilter, setBudgetFilter] = useState<BudgetFilter>("all");
   const [planned, setPlanned] = useState(false);
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [savedTripId, setSavedTripId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -107,10 +109,26 @@ export default function PlannerPage() {
         return Number.isFinite(latitude) && Number.isFinite(longitude) ? [{ id: row.id, slug: row.slug, name: row.name, locationLabel: row.location_label || "India", latitude, longitude, isPetFriendly: row.is_pet_friendly ?? null, hasEvCharging: row.has_ev_charging ?? null, typicalVisitMinutes: row.typical_visit_minutes ?? null, entryFee: row.entry_fee ?? null }] : [];
       }) as PlaceOption[];
       setPlaces(options);
+      const draft = readJourneyPlannerDraft();
+      const savedOrigin = draft?.originSlug ? options.find((place) => place.slug === draft.originSlug) : undefined;
+      const savedDestination = draft?.destinationSlug ? options.find((place) => place.slug === draft.destinationSlug) : undefined;
+      if (draft) {
+        setOrigin(savedOrigin ?? null);
+        setOriginText(savedOrigin?.name ?? "");
+        setDestination(savedDestination ?? null);
+        setDestinationText(savedDestination?.name ?? "");
+        setBufferKm(draft.bufferKm);
+        setFilter(draft.filter);
+        setBudgetFilter(draft.budgetFilter);
+        setPlanned(Boolean(draft.planned && savedOrigin && savedDestination));
+        setHydrated(true);
+        return;
+      }
       const mumbai = options.find((place) => place.name.toLowerCase() === "mumbai");
       const lonavala = options.find((place) => place.name.toLowerCase() === "lonavala");
       if (mumbai) { setOrigin(mumbai); setOriginText(mumbai.name); }
       if (lonavala) { setDestination(lonavala); setDestinationText(lonavala.name); }
+      setHydrated(true);
     };
     void loadPlaces();
   }, []);
@@ -124,6 +142,20 @@ export default function PlannerPage() {
       return true;
     }).filter((place) => budgetFilter === "all" || budgetBand(place.entryFee) === budgetFilter).sort((a, b) => distanceToCorridorKm(a, origin, destination) - distanceToCorridorKm(b, origin, destination));
   }, [bufferKm, budgetFilter, destination, filter, origin, places]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    writeJourneyPlannerDraft({
+      originSlug: origin?.slug ?? null,
+      destinationSlug: destination?.slug ?? null,
+      bufferKm,
+      filter,
+      budgetFilter,
+      planned,
+      candidateSlugs: candidates.map((place) => place.slug),
+      savedAt: Date.now(),
+    });
+  }, [bufferKm, budgetFilter, candidates, destination?.slug, filter, hydrated, origin?.slug, planned]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

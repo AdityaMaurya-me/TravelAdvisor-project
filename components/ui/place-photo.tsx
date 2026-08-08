@@ -29,9 +29,10 @@ interface PlacePhotoProps {
  */
 export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhotoAuthor, className, sizes }: PlacePhotoProps) {
   const [photo, setPhoto] = useState<PhotoResult["photo"]>(null);
+  const [googlePhotoFailed, setGooglePhotoFailed] = useState(false);
 
   useEffect(() => {
-    if (googlePhotoName) {
+    if (googlePhotoName && !googlePhotoFailed) {
       setPhoto({ url: `/api/place-photo?googlePhoto=${encodeURIComponent(googlePhotoName)}`, photographer: googlePhotoAuthor ?? "Google Maps contributor", source: "Google Maps" });
       return;
     }
@@ -41,7 +42,9 @@ export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhoto
     }
 
     const controller = new AbortController();
-    const url = `/api/place-photo?query=${encodeURIComponent(query)}`;
+    // If Google rejected one individual photo URL, still give the traveller a
+    // useful visual from our public-image fallback instead of a broken tile.
+    const url = `/api/place-photo?query=${encodeURIComponent(query)}${googlePhotoFailed ? "&skipGoogle=1" : ""}`;
 
     void fetch(url, { signal: controller.signal })
       .then(async (response) => response.ok ? response.json() as Promise<PhotoResult> : { photo: null })
@@ -49,7 +52,11 @@ export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhoto
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [googlePhotoAuthor, googlePhotoName, query, src]);
+  }, [googlePhotoAuthor, googlePhotoFailed, googlePhotoName, query, src]);
+
+  useEffect(() => {
+    setGooglePhotoFailed(false);
+  }, [googlePhotoName]);
 
   return (
     <>
@@ -60,6 +67,12 @@ export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhoto
         sizes={sizes}
         className={className}
         unoptimized={Boolean(photo)}
+        onError={() => {
+          if (googlePhotoName && !googlePhotoFailed) {
+            setPhoto(null);
+            setGooglePhotoFailed(true);
+          }
+        }}
       />
       {photo && (
         <span className="pointer-events-none absolute bottom-2 right-2 rounded bg-slate-950/75 px-2 py-1 text-[10px] text-slate-200 backdrop-blur-sm">

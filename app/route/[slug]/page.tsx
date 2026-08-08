@@ -24,7 +24,7 @@ export default async function JourneyRoute({ params, searchParams }: { params: P
     locationLabel: googlePlace.address || "Google place",
     latitude: googlePlace.latitude,
     longitude: googlePlace.longitude,
-    image: googlePlace.photoUrl || null,
+    image: googlePlace.photo?.name ? `/api/place-photo?googlePhoto=${encodeURIComponent(googlePlace.photo.name)}` : null,
     type: googlePlace.primaryType || "place",
     isPetFriendly: null,
     hasEvCharging: null,

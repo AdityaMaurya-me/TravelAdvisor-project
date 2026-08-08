@@ -11,6 +11,7 @@ import { RouteDirectionsMap } from "@/components/maps/route-directions-map";
 import { UniversalBackLink } from "@/components/navigation/universal-back-link";
 import { RouteExportMenu } from "@/components/sections/route/route-export-menu";
 import { SaveRouteButton } from "@/components/ui/save-route-button";
+import { readJourneyPlannerDraft } from "@/lib/journey-planner-draft";
 import type { JourneyRoute, RoutePlaceOption } from "@/lib/mock-data/routes";
 
 const utilities = [[Fuel, "Fuel stations"], [Toilet, "Rest areas"], [Toilet, "Washrooms"], [ParkingCircle, "Parking"], [Zap, "EV charging"], [ShieldCheck, "Traffic updates"]] as const;
@@ -77,17 +78,54 @@ export function JourneyRoutePage({ route, places, initialOriginSlug, initialDest
   const [isLocating, setIsLocating] = useState(false);
   const [selectedUtility, setSelectedUtility] = useState<string | null>(null);
   const [stopFilter, setStopFilter] = useState<StopFilter>("all");
+  const [plannerStopSlugs, setPlannerStopSlugs] = useState<string[] | null>(null);
   const storageKey = `traveladvisor:route-draft:${route.slug}`;
+  useEffect(() => {
+    if (backHref !== "/planner" || initialOriginSlug || initialDestinationSlug || initialExternalDestination) return;
+    const draft = readJourneyPlannerDraft();
+    if (!draft?.planned || !draft.originSlug || !draft.destinationSlug) return;
+    const plannedOrigin = places.find((place) => place.slug === draft.originSlug);
+    const plannedDestination = places.find((place) => place.slug === draft.destinationSlug);
+    if (!plannedOrigin || !plannedDestination) return;
+    setOrigin(plannedOrigin);
+    setOriginText(plannedOrigin.name);
+    setDestination(plannedDestination);
+    setDestinationText(plannedDestination.name);
+    setStopFilter(draft.filter);
+    setPlannerStopSlugs(draft.candidateSlugs);
+  }, [backHref, initialDestinationSlug, initialExternalDestination, initialOriginSlug, places]);
   useEffect(() => {
     // A saved route or a destination-map link explicitly supplies A and/or B.
     // Those values must win over an unrelated draft left on the same route template.
-    if (initialOriginSlug || initialDestinationSlug || initialExternalDestination) return;
+    if (initialOriginSlug || initialDestinationSlug || initialExternalDestination || backHref === "/planner") return;
     try { const saved = window.localStorage.getItem(storageKey); if (!saved) return; const draft = JSON.parse(saved); if (draft.origin) { setOrigin(draft.origin); setOriginText(draft.origin.name); } if (draft.destination) { setDestination(draft.destination); setDestinationText(draft.destination.name); } if (draft.profile) setProfile(draft.profile); if (draft.directions) setDirections(draft.directions); } catch { /* Ignore malformed local drafts. */ }
-  }, [initialDestinationSlug, initialExternalDestination, initialOriginSlug, storageKey]);
+  }, [backHref, initialDestinationSlug, initialExternalDestination, initialOriginSlug, storageKey]);
   useEffect(() => { try { window.localStorage.setItem(storageKey, JSON.stringify({ origin, destination, profile, directions })); } catch { /* Storage may be unavailable. */ } }, [destination, directions, origin, profile, storageKey]);
   const mapPoints = origin && destination ? [{ name: origin.name, latitude: origin.latitude, longitude: origin.longitude, role: "origin" as const }, { name: destination.name, latitude: destination.latitude, longitude: destination.longitude, role: "destination" as const }] : [];
+  const plannerStops = useMemo(() => {
+    if (plannerStopSlugs === null) return [];
+    const placesBySlug = new Map(places.map((place) => [place.slug, place]));
+    return plannerStopSlugs.flatMap((slug) => {
+      const place = placesBySlug.get(slug);
+      if (!place) return [];
+      return [{
+        id: place.id,
+        slug: place.slug,
+        title: place.name,
+        image: place.image || "/placeholder.jpg",
+        type: place.type.replace(/_/g, " "),
+        distance: "Included in your planning corridor",
+        isPetFriendly: place.isPetFriendly,
+        hasParking: null,
+        hasWashroom: null,
+        hasEvCharging: place.hasEvCharging,
+        typicalVisitMinutes: place.typicalVisitMinutes,
+      }];
+    });
+  }, [places, plannerStopSlugs]);
   const routeStops = useMemo(() => {
     if (!directions?.geometry.length || !origin || !destination) {
+      if (plannerStopSlugs !== null) return plannerStops;
       const isTemplatePair = origin?.name === route.startName && destination?.name === route.endName;
       return isTemplatePair ? route.stops : [];
     }
@@ -110,7 +148,7 @@ export function JourneyRoutePage({ route, places, initialOriginSlug, initialDest
         hasEvCharging: place.hasEvCharging,
         typicalVisitMinutes: place.typicalVisitMinutes,
       }));
-  }, [destination, directions?.geometry, origin, places, route.endName, route.startName, route.stops]);
+  }, [destination, directions?.geometry, origin, places, plannerStopSlugs, plannerStops, route.endName, route.startName, route.stops]);
   const visibleStops = useMemo(() => routeStops.filter((stop) => stopFilter === "pet" ? stop.isPetFriendly === true : stopFilter === "ev" ? stop.hasEvCharging === true : stopFilter === "quick" ? stop.typicalVisitMinutes !== null && stop.typicalVisitMinutes <= 30 : true), [routeStops, stopFilter]);
 
   const calculate = async (event: FormEvent<HTMLFormElement>) => {

@@ -1,6 +1,7 @@
 import type { PlacePreview } from "@/lib/mock-data/destinations";
 import { createClient } from "@/lib/supabase/server";
 import { getPlaceMapMarker, type DetailMapMarker } from "@/lib/data/detail-maps";
+import { getGooglePlaceById } from "@/lib/google-places";
 
 export type PlaceFactIcon = "sunrise" | "ticket" | "clock" | "timer" | "camera";
 
@@ -21,6 +22,8 @@ export interface PlaceDetail {
   /** Canonical card image. Detail pages always lead with this same image. */
   coverImage: string;
   images: string[];
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
   facts: PlaceFact[];
   verifiedInfo: { openingHours?: string; entryFee?: string; websiteUrl?: string; phone?: string; sourceUrl?: string; sourceReference?: string; lastVerifiedAt?: string; hasParking?: boolean | null; hasWashroom?: boolean | null; isPetFriendly?: boolean | null; hasEvCharging?: boolean | null; typicalVisitMinutes?: number | null };
   nearbyPlaces: PlacePreview[];
@@ -121,6 +124,9 @@ export async function getPlaceBySlug(
     : [];
 
   const mapMarker = await getPlaceMapMarker(place.id);
+  const googlePlace = typeof (place as any).google_place_id === "string"
+    ? await getGooglePlaceById((place as any).google_place_id)
+    : null;
 
   const coverImage = typeof place.cover_image === "string" && place.cover_image.trim()
     ? place.cover_image.trim()
@@ -140,6 +146,8 @@ export async function getPlaceBySlug(
     description: place.description ?? "",
     coverImage,
     images: displayImages,
+    googlePhotoName: googlePlace?.photo?.name,
+    googlePhotoAuthor: googlePlace?.photo?.authorName,
     facts,
     verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly, hasEvCharging: (place as any).has_ev_charging, typicalVisitMinutes: (place as any).typical_visit_minutes },
     nearbyPlaces,

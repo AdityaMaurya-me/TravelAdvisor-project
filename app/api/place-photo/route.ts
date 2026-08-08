@@ -51,6 +51,7 @@ async function redirectToGooglePhoto(photoName: string, apiKey: string) {
  */
 export async function GET(request: NextRequest) {
   const googlePhotoName = request.nextUrl.searchParams.get("googlePhoto");
+  const skipGoogle = request.nextUrl.searchParams.get("skipGoogle") === "1";
   const googleApiKey = process.env.GOOGLE_MAPS_DEMO_API_KEY;
 
   if (googlePhotoName && googleApiKey && validPhotoName(googlePhotoName)) {
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("query")?.trim();
   if (!query || query.length > 160) return NextResponse.json({ photo: null });
 
-  if (googleApiKey) {
+  if (googleApiKey && !skipGoogle) {
     try {
       const matchedPlace = (await searchGooglePlaces(query, 1))[0];
       const place = matchedPlace ? await getGooglePlaceById(matchedPlace.id) : null;

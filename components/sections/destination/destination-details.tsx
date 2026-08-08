@@ -50,7 +50,7 @@ export function DestinationDetails({ destination, backHref, backLabel }: Destina
           />
         )}
 
-        {destination.isLive && <PlaceRailSection title={`Live places around ${destination.title}`} description="Current Google listings for this destination. Open a card for full details, saving, routes, and discussions." href={destination.livePlacesHref} actionLabel="View all live places" places={destination.communityFavorites} />}
+        {destination.isLive && <PlaceRailSection title={`Live places around ${destination.title}`} description="Current Google listings for this destination. Open a card for full details, saving, routes, and discussions." href={destination.livePlacesHref ?? `/search/${encodeURIComponent(`places to visit in ${destination.title}`)}`} actionLabel="View all live places" places={destination.communityFavorites} />}
 
         {!destination.isLive && destination.livePlaces && <PlaceRailSection title={`Live places around ${destination.title}`} description="Current Google listings near this destination. Open a card for full details, saving, routes, and discussions." href={destination.livePlacesHref ?? `/search/${encodeURIComponent(`places to visit in ${destination.title}`)}`} actionLabel="View all live places" places={destination.livePlaces} />}
 

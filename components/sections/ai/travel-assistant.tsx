@@ -24,6 +24,9 @@ type AssistantCard = {
   image: string;
   description: string | null;
   type: "Destination" | "Place";
+  source?: "TravelAdvisor" | "Google Maps";
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
 };
 
 type Message = {
@@ -67,7 +70,8 @@ export function TravelAssistant() {
   const load = async () => {
     try {
       const response = await fetch("/api/ai/conversations");
-      const result = (await response.json()) as { conversations?: Conversation[] };
+      const result = (await response.json()) as { conversations?: Conversation[]; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Could not load your previous chats.");
       const rows = result.conversations ?? [];
       const storedId = window.sessionStorage.getItem(ACTIVE_CONVERSATION_KEY);
 
@@ -76,8 +80,8 @@ export function TravelAssistant() {
         const preferredId = current ?? storedId;
         return rows.some((row) => row.id === preferredId) ? preferredId : rows[0]?.id ?? null;
       });
-    } catch {
-      setError("Could not load your previous chats.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not load your previous chats.");
     } finally {
       setHistoryLoaded(true);
     }
@@ -198,6 +202,7 @@ export function TravelAssistant() {
         answer?: string;
         cards?: AssistantCard[];
         error?: string;
+        historyWarning?: string;
       };
 
       if (!response.ok || !result.answer) {
@@ -220,6 +225,7 @@ export function TravelAssistant() {
 
         return [updated, ...current.filter((row) => row.id !== conversationId)];
       });
+      if (result.historyWarning) setError(result.historyWarning);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "The assistant could not answer that right now.",
@@ -367,11 +373,13 @@ export function TravelAssistant() {
                       image={card.image}
                       alt={card.title}
                       query={`${card.title} ${card.location}`}
+                      googlePhotoName={card.googlePhotoName}
+                      googlePhotoAuthor={card.googlePhotoAuthor}
                       aspectRatio="landscape"
                     >
                       <div className="space-y-1.5 p-3">
                         <p className="text-[11px] font-semibold uppercase tracking-[.12em] text-violet-300">
-                          {card.type}
+                          {card.source === "Google Maps" ? "Live Google Maps" : card.type}
                         </p>
                         <h2 className="line-clamp-1 text-sm font-semibold">{card.title}</h2>
                         <p className="flex items-center gap-1 text-xs text-muted-foreground">

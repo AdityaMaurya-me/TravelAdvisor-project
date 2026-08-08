@@ -5,6 +5,8 @@ import * as maptilersdk from "@maptiler/sdk";
 import { AlertCircle, Crosshair, LoaderCircle, MapPin, Navigation, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { mapTilerStyle, OPEN_STREET_MAP_FALLBACK_STYLE } from "@/lib/maps/map-style";
+
 import "@maptiler/sdk/dist/maptiler-sdk.css";
 
 type NearbyPlace = {
@@ -40,6 +42,7 @@ export function NearbyExplorerMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
   const [mapMessage, setMapMessage] = useState("");
+  const [usingFallback, setUsingFallback] = useState(false);
 
   const selected = places.find((place) => place.id === selectedId) ?? places[0] ?? null;
 
@@ -67,56 +70,85 @@ export function NearbyExplorerMap() {
   }, [message, origin, places, radius, selectedId, state]);
 
   useEffect(() => {
-    if (!origin || !element.current || !MAPTILER_API_KEY) return;
+    if (!origin || !element.current) return;
 
     let disposed = false;
     let timeout: ReturnType<typeof setTimeout> | undefined;
+    let map: maptilersdk.Map | null = null;
+    let fallbackActive = !MAPTILER_API_KEY;
+    let fallbackAttempted = fallbackActive;
     setMapStatus("loading");
     setMapMessage("");
+    setUsingFallback(fallbackActive);
 
-      maptilersdk.config.apiKey = MAPTILER_API_KEY;
-    const map = new maptilersdk.Map({
-      container: element.current,
-      style: `https://api.maptiler.com/maps/streets-v4-dark/style.json?key=${encodeURIComponent(MAPTILER_API_KEY)}`,
-      center: [origin.longitude, origin.latitude],
-      zoom: 11,
-      logSDKVersion: false,
-    });
-    mapRef.current = map;
-    map.addControl(new maptilersdk.NavigationControl({ showCompass: false }), "bottom-right");
-
-    map.on("load", () => {
-      if (!disposed) setMapStatus("ready");
-    });
-    map.on("error", (event) => {
-      if (disposed) return;
-      const status = (event.error as { status?: number } | undefined)?.status;
-      setMapStatus("error");
-      setMapMessage(status === 401 || status === 403
-        ? "MapTiler rejected this browser key. Check its allowed origins, then restart the app."
-        : "The nearby map could not load. Check the MapTiler key and browser network connection.");
-    });
-    timeout = setTimeout(() => {
-      if (!disposed) {
-        setMapStatus((current) => {
-          if (current !== "loading") return current;
-          setMapMessage("The nearby map is taking too long to load. Check the MapTiler browser key and allowed origins.");
-          return "error";
+    const mountMap = (useFallback: boolean) => {
+      if (disposed || !element.current) return;
+      fallbackActive = useFallback;
+      setUsingFallback(useFallback);
+      markerRef.current.forEach((marker) => marker.remove());
+      markerRef.current = [];
+      map?.remove();
+      try {
+        if (MAPTILER_API_KEY) maptilersdk.config.apiKey = MAPTILER_API_KEY;
+        map = new maptilersdk.Map({
+          container: element.current,
+          style: useFallback ? OPEN_STREET_MAP_FALLBACK_STYLE : mapTilerStyle(MAPTILER_API_KEY!),
+          center: [origin.longitude, origin.latitude],
+          zoom: 11,
+          logSDKVersion: false,
         });
+        const instance = map;
+        mapRef.current = map;
+        map.addControl(new maptilersdk.NavigationControl({ showCompass: false }), "bottom-right");
+        map.on("load", () => {
+          if (disposed || instance !== map) return;
+          if (timeout) clearTimeout(timeout);
+          setMapStatus("ready");
+        });
+        map.on("error", () => {
+          if (disposed || instance !== map) return;
+          if (!fallbackActive && !fallbackAttempted) {
+            fallbackAttempted = true;
+            mountMap(true);
+            return;
+          }
+          if (timeout) clearTimeout(timeout);
+          setMapStatus("error");
+          setMapMessage("The backup map could not load. Check your connection and refresh.");
+        });
+        const currentLocation = document.createElement("span");
+        currentLocation.className = "travel-map-current-location";
+        currentLocation.setAttribute("aria-label", "Your current location");
+        new maptilersdk.Marker({ element: currentLocation }).setLngLat([origin.longitude, origin.latitude]).addTo(map);
+      } catch {
+        if (!fallbackActive && !fallbackAttempted) {
+          fallbackAttempted = true;
+          mountMap(true);
+        } else {
+          setMapStatus("error");
+          setMapMessage("The backup map could not start. Check your connection and refresh.");
+        }
+      }
+    };
+
+    timeout = setTimeout(() => {
+      if (disposed) return;
+      if (!fallbackActive && !fallbackAttempted) {
+        fallbackAttempted = true;
+        mountMap(true);
+      } else {
+        setMapStatus("error");
+        setMapMessage("The backup map is taking too long to load. Check your connection and refresh.");
       }
     }, 8000);
-
-    const currentLocation = document.createElement("span");
-    currentLocation.className = "travel-map-current-location";
-    currentLocation.setAttribute("aria-label", "Your current location");
-    new maptilersdk.Marker({ element: currentLocation }).setLngLat([origin.longitude, origin.latitude]).addTo(map);
+    mountMap(fallbackActive);
 
     return () => {
       disposed = true;
       if (timeout) clearTimeout(timeout);
       markerRef.current.forEach((marker) => marker.remove());
       markerRef.current = [];
-      map.remove();
+      map?.remove();
       mapRef.current = null;
     };
   }, [origin]);
@@ -143,7 +175,7 @@ export function NearbyExplorerMap() {
       places.forEach((place) => bounds.extend([place.longitude, place.latitude]));
       map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 450 });
     }
-  }, [origin, places]);
+  }, [mapStatus, origin, places]);
 
   const loadNearbyPlaces = async (coordinates: { latitude: number; longitude: number }, nextRadius = radius) => {
     setState("loading");
@@ -196,8 +228,8 @@ export function NearbyExplorerMap() {
 
         <div className="overflow-hidden rounded-2xl border border-cyan-300/20 bg-card shadow-2xl shadow-cyan-950/20 lg:grid lg:grid-cols-[minmax(0,1.7fr)_22rem]">
           <div className="relative min-h-95 bg-card sm:min-h-120">
-            {origin && MAPTILER_API_KEY ? <><div ref={element} className="absolute inset-0" aria-label="Interactive map of places near you" />{mapStatus !== "ready" && <div className="absolute inset-0 grid place-items-center bg-card/85 p-8 text-center text-sm leading-6 text-muted-foreground backdrop-blur-sm"><div>{mapStatus === "loading" && <LoaderCircle className="mx-auto mb-3 h-8 w-8 animate-spin text-cyan-300" />} {mapStatus === "error" && <AlertCircle className="mx-auto mb-3 h-8 w-8 text-rose-300" />}{mapMessage || "Loading the nearby map…"}</div></div>}</> : <div className="absolute inset-0 grid place-items-center p-8 text-center text-sm leading-6 text-slate-300"><div><MapPin className="mx-auto mb-3 h-8 w-8 text-cyan-300" />{!MAPTILER_API_KEY ? "Add a valid MapTiler browser key to show the nearby map." : message}</div></div>}
-            {origin && !MAPTILER_API_KEY && <div className="absolute inset-x-5 bottom-5 rounded-xl border border-amber-300/20 bg-slate-950/80 p-3 text-xs text-amber-100 backdrop-blur">Places were found, but the map needs a valid MapTiler browser key.</div>}
+            {origin ? <><div ref={element} className="absolute inset-0" aria-label="Interactive map of places near you" />{mapStatus !== "ready" && <div className="absolute inset-0 grid place-items-center bg-card/85 p-8 text-center text-sm leading-6 text-muted-foreground backdrop-blur-sm"><div>{mapStatus === "loading" && <LoaderCircle className="mx-auto mb-3 h-8 w-8 animate-spin text-cyan-300" />} {mapStatus === "error" && <AlertCircle className="mx-auto mb-3 h-8 w-8 text-rose-300" />}{mapMessage || "Loading the nearby map…"}</div></div>}</> : <div className="absolute inset-0 grid place-items-center p-8 text-center text-sm leading-6 text-slate-300"><div><MapPin className="mx-auto mb-3 h-8 w-8 text-cyan-300" />{message}</div></div>}
+            {origin && usingFallback && <div className="pointer-events-none absolute bottom-5 left-5 rounded-xl border border-border bg-background/90 p-3 text-xs text-muted-foreground backdrop-blur">OpenStreetMap backup is active.</div>}
           </div>
           <div className="border-t border-border lg:border-l lg:border-t-0">
             <div className="border-b border-border px-5 py-4"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-medium uppercase tracking-[0.14em] text-cyan-300">Nearby places</p><p className="mt-1 text-sm text-muted-foreground">{message}</p></div>{state === "loading" && <LoaderCircle className="h-5 w-5 animate-spin text-cyan-300" />}</div><div className="mt-4 flex gap-2">{[10, 25, 50].map((value) => <button key={value} type="button" onClick={() => updateRadius(value)} disabled={!origin || state === "loading"} className={`rounded-full border px-3 py-1.5 text-xs transition ${radius === value ? "border-cyan-300 bg-cyan-300/10 text-cyan-100" : "border-border text-muted-foreground hover:border-cyan-300/50"} disabled:cursor-not-allowed disabled:opacity-45`}>Within {value} km</button>)}</div></div>

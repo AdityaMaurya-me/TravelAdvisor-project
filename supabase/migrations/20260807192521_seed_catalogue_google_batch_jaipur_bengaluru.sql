@@ -1,0 +1,41 @@
+-- Catalogue expansion v1 / batch 02.
+-- Sources: Google Places Text Search, four throttled requests on 2026-08-08.
+
+with seed (slug, destination_slug, category_slug, name, address, latitude, longitude, google_place_id, source_url, description) as (
+  values
+    ('hawa-mahal', 'jaipur', 'attractions', 'Hawa Mahal', 'Hawa Mahal Rd, Kanwar Nagar, Jaipur, Rajasthan 302002, India', 26.9240458, 75.8267144, 'ChIJpQvTG0uxbTkRDLLMHlNdDoY', 'https://maps.google.com/?cid=9659760862336692748', 'Historic palace facade and landmark in Jaipur.'),
+    ('city-palace-jaipur', 'jaipur', 'attractions', 'The City Palace', 'Gangori Bazaar, Kanwar Nagar, Jaipur, Rajasthan 302002, India', 26.9257943, 75.8236714, 'ChIJwbAghgu0bTkRYHt9ATEVgEQ', 'https://maps.google.com/?cid=4935968491820645216', 'Historic palace and museum complex in Jaipur.'),
+    ('jaigarh-fort', 'jaipur', 'attractions', 'Jaigarh Fort', 'Devisinghpura, Amer, Jaipur, Rajasthan 302028, India', 26.9816052, 75.8447917, 'ChIJx0lfsbGxbTkRgVOhxJ7EGbw', 'https://maps.google.com/?cid=13554080739731002241', 'Hill fort and museum above Amer in Jaipur.'),
+    ('jal-mahal', 'jaipur', 'attractions', 'Jal Mahal', 'Amer, Jaipur, Rajasthan 302002, India', 26.9534584, 75.8461235, 'ChIJlXJ26RuxbTkR0qsToxFP05c', 'https://maps.google.com/?cid=10940174856982080466', 'Historic water palace on Man Sagar Lake in Jaipur.'),
+    ('sisodia-rani-ka-bagh', 'jaipur', 'attractions', 'Sisodia Rani ka Bagh', 'Agra Rd, Ghat Ki Guni, Jaipur, Rajasthan 302003, India', 26.8994218, 75.8587309, 'ChIJkzbjKhm3bTkRNiCT5-dA6vU', 'https://maps.google.com/?cid=17720047048609439798', 'Historic terraced garden and monument in Jaipur.'),
+    ('the-magnolia-jaipur', 'jaipur', 'cafes', 'The Magnolia', 'Garden Theatre, Smriti Van, Jaipur, Rajasthan 302017, India', 26.8694710, 75.8094890, 'ChIJlwChpwq3bTkRRVeE8_-PZu0', 'https://maps.google.com/?cid=17106518564078376773', 'Cafe at Smriti Van in Jaipur.'),
+    ('stepout-cafe-jaipur', 'jaipur', 'cafes', 'Stepout Cafe', 'Sahdev Marg, C Scheme, Jaipur, Rajasthan 302007, India', 26.9059504, 75.8022510, 'ChIJOXWjkRy0bTkRFwDFnyNJtkA', 'https://maps.google.com/?cid=4662994881541898263', 'Cafe in C Scheme, Jaipur.'),
+    ('silly-rabbit-kafe', 'jaipur', 'cafes', 'Silly Rabbit Kafe', 'Sanjay Gandhi Marg, Gopalbari, Jaipur, Rajasthan 302001, India', 26.9169002, 75.7951976, 'ChIJ--0Kt221bTkRnut9gf7uVdQ', 'https://maps.google.com/?cid=15300398085922745246', 'Cafe and restaurant in Gopalbari, Jaipur.'),
+    ('nibs-cafe-jaipur', 'jaipur', 'cafes', 'Nibs Cafe and Chocolataria', 'Sanjay Marg, Hathroi, Jaipur, Rajasthan 302012, India', 26.9155934, 75.7949266, 'ChIJvSoxFSS0bTkRMaLYloCu2a0', 'https://maps.google.com/?cid=12527235705817571889', 'Cafe and chocolataria in Jaipur.'),
+    ('house-of-coffee-jaipur', 'jaipur', 'cafes', 'The house of coffee', 'Sunder Marg, C Scheme, Jaipur, Rajasthan 302001, India', 26.9073797, 75.7966579, 'ChIJSbfsN3W1bTkR0y7UfnAYUu8', 'https://maps.google.com/?cid=17244872794598289107', 'Coffee shop in C Scheme, Jaipur.'),
+    ('bengaluru-palace', 'bengaluru', 'attractions', 'Bengaluru Palace', 'Bengaluru, Karnataka, India', 13.0035068, 77.5890953, 'ChIJN1ZKKUkWrjsRzxIVM363-LE', 'https://maps.google.com/?cid=12824201691588268751', 'Historic palace and museum in Bengaluru.'),
+    ('sri-chamarajendra-park', 'bengaluru', 'attractions', 'Sri Chamarajendra Park', 'Ambedkar Veedhi, Bengaluru, Karnataka 560001, India', 12.9752487, 77.5928871, 'ChIJL2fQ53MWrjsRuN9D6aalLMY', 'https://maps.google.com/?cid=14279970654781693880', 'Central city park in Bengaluru.'),
+    ('tipu-sultans-summer-palace', 'bengaluru', 'attractions', 'Tipu Sultans Summer Palace', 'Tippu Sultan Palace Rd, Chamrajpet, Bengaluru, Karnataka 560018, India', 12.9593513, 77.5736415, 'ChIJAeY0tOQVrjsRdZ8hleP7aRo', 'https://maps.google.com/?cid=1903329272418901877', 'Historic palace and museum in Bengaluru.'),
+    ('bengaluru-fort', 'bengaluru', 'attractions', 'Bengaluru Fort', 'Krishna Rajendra Rd, Bengaluru, Karnataka 560002, India', 12.9628018, 77.5758862, 'ChIJVx06BOMVrjsR1-a9CQJZpLI', 'https://maps.google.com/?cid=12872511500219967191', 'Historic fort site in Bengaluru.'),
+    ('namma-bengaluru-aquarium', 'bengaluru', 'attractions', 'Namma Bengaluru Aquarium', 'Kasturba Rd, Bengaluru, Karnataka 560001, India', 12.9765148, 77.5985397, 'ChIJSXQE4HAWrjsRyeiku6FOYT4', 'https://maps.google.com/?cid=4494960359637313737', 'Public aquarium in central Bengaluru.'),
+    ('dyu-art-cafe', 'bengaluru', 'cafes', 'Dyu Art Cafe', 'KHB Colony, Koramangala, Bengaluru, Karnataka 560095, India', 12.9373076, 77.6176544, 'ChIJ80IECk8UrjsRqCffDjE09lw', 'https://maps.google.com/?cid=6698598881067739048', 'Art cafe in Koramangala, Bengaluru.'),
+    ('the-bangalore-cafe', 'bengaluru', 'cafes', 'The Bangalore Cafe', 'Kengal Hanumanthaiah Rd, Shanti Nagar, Bengaluru, Karnataka 560027, India', 12.9615596, 77.5946966, 'ChIJo0tJmV8VrjsR0vWuyvPK9DM', 'https://maps.google.com/?cid=3743840338678052306', 'Cafe and vegetarian restaurant in Bengaluru.'),
+    ('dialogues-cafe-koramangala', 'bengaluru', 'cafes', 'Dialogues Cafe Koramangala', '80 Feet Rd, Koramangala, Bengaluru, Karnataka 560034, India', 12.9324179, 77.6319540, 'ChIJHwc9qEQUrjsRmZ4YRQVDz9I', 'https://maps.google.com/?cid=15190433758057111193', 'Cafe and coworking venue in Koramangala, Bengaluru.'),
+    ('hole-in-the-wall-cafe', 'bengaluru', 'cafes', 'The Hole In The Wall Cafe', '8th Main Rd, Koramangala, Bengaluru, Karnataka 560047, India', 12.9347403, 77.6254693, 'ChIJy9Ry9GcUrjsRlAT3TuW94lE', 'https://maps.google.com/?cid=5900487254378742932', 'Cafe in Koramangala, Bengaluru.'),
+    ('lazy-suzy-bengaluru', 'bengaluru', 'cafes', 'Lazy Suzy', '80 Feet Rd, Indiranagar, Bengaluru, Karnataka 560075, India', 12.9708747, 77.6475882, 'ChIJ37SqAqoWrjsR0104e_dU3fY', 'https://maps.google.com/?cid=17788467525084274131', 'Cafe and bakery in Indiranagar, Bengaluru.')
+)
+insert into public.places (slug, name, level, parent_id, city, state, country, location, address, description, google_place_id, source_url, source_reference, last_verified_at, is_published, is_external, external_source, external_details)
+select seed.slug, seed.name, 'attraction'::public.place_level, destination.id, destination.name, destination.state, destination.country, st_setsrid(st_makepoint(seed.longitude, seed.latitude), 4326)::geography, seed.address, seed.description, seed.google_place_id, seed.source_url, 'Google Places Text Search - catalogue batch 02', now(), true, false, 'google_places', jsonb_build_object('catalogue_batch', 'jaipur-bengaluru-02')
+from seed join public.places destination on destination.slug = seed.destination_slug
+on conflict (slug) do update set parent_id = excluded.parent_id, city = excluded.city, state = excluded.state, country = excluded.country, location = excluded.location, address = excluded.address, description = excluded.description, google_place_id = excluded.google_place_id, source_url = excluded.source_url, source_reference = excluded.source_reference, last_verified_at = excluded.last_verified_at, is_published = true, is_external = false, external_source = excluded.external_source, external_details = excluded.external_details, updated_at = now();
+
+with seed (slug, category_slug) as (
+  values
+    ('hawa-mahal', 'attractions'), ('city-palace-jaipur', 'attractions'), ('jaigarh-fort', 'attractions'), ('jal-mahal', 'attractions'), ('sisodia-rani-ka-bagh', 'attractions'),
+    ('the-magnolia-jaipur', 'cafes'), ('stepout-cafe-jaipur', 'cafes'), ('silly-rabbit-kafe', 'cafes'), ('nibs-cafe-jaipur', 'cafes'), ('house-of-coffee-jaipur', 'cafes'),
+    ('bengaluru-palace', 'attractions'), ('sri-chamarajendra-park', 'attractions'), ('tipu-sultans-summer-palace', 'attractions'), ('bengaluru-fort', 'attractions'), ('namma-bengaluru-aquarium', 'attractions'),
+    ('dyu-art-cafe', 'cafes'), ('the-bangalore-cafe', 'cafes'), ('dialogues-cafe-koramangala', 'cafes'), ('hole-in-the-wall-cafe', 'cafes'), ('lazy-suzy-bengaluru', 'cafes')
+)
+insert into public.place_categories (place_id, category_id)
+select place.id, category.id from seed join public.places place on place.slug = seed.slug join public.categories category on category.slug = seed.category_slug
+on conflict do nothing;

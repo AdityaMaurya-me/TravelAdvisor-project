@@ -14,9 +14,9 @@ export function ShareTripButton({ tripId, title }: { tripId: string; title: stri
     try {
       const token = await createShareableTripPlan(tripId);
       const url = `${window.location.origin}/itinerary/${token}`;
-      if (navigator.share) await navigator.share({ title, text: "TravelAdvisor itinerary", url });
+      if (supportsNativeShare) await navigator.share({ title, text: "TravelAdvisor itinerary", url });
       else await navigator.clipboard.writeText(url);
-      setMessage(navigator.share ? "Share link ready." : "Share link copied.");
+      setMessage(supportsNativeShare ? "Share link ready." : "Share link copied.");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setMessage(error instanceof Error ? error.message : "Unable to share this journey.");
