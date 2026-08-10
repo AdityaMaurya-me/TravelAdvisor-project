@@ -41,7 +41,11 @@ export async function getSearchResults(query: string): Promise<SearchResultSet> 
   const { data: allPlaces } = await supabase
     .from("places")
     .select("slug, name, city, state, cover_image, description, is_published, place_categories(categories(slug, name))")
-    .eq("is_published", true);
+    .eq("is_published", true)
+    // Saved Google-live records are only infrastructure for a traveller's
+    // saved state. Curated search must show the canonical catalogue card,
+    // never a second unparented listing for the same place.
+    .eq("is_external", false);
   const { data: allCategories } = await supabase
     .from("categories")
     .select("id, slug, name, place_categories(place_id)");

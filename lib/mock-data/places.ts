@@ -24,6 +24,9 @@ export interface PlaceDetail {
   images: string[];
   googlePhotoName?: string;
   googlePhotoAuthor?: string;
+  /** Aggregate live rating from Google Maps; never mixed with TravelAdvisor reviews. */
+  googleRating?: number;
+  googleRatingCount?: number;
   facts: PlaceFact[];
   verifiedInfo: { openingHours?: string; entryFee?: string; websiteUrl?: string; phone?: string; sourceUrl?: string; sourceReference?: string; lastVerifiedAt?: string; hasParking?: boolean | null; hasWashroom?: boolean | null; isPetFriendly?: boolean | null; hasEvCharging?: boolean | null; typicalVisitMinutes?: number | null };
   nearbyPlaces: PlacePreview[];
@@ -124,9 +127,16 @@ export async function getPlaceBySlug(
     : [];
 
   const mapMarker = await getPlaceMapMarker(place.id);
-  const googlePlace = typeof (place as any).google_place_id === "string"
-    ? await getGooglePlaceById((place as any).google_place_id)
-    : null;
+  // A previously saved live listing can be canonically linked to this
+  // verified card. Keep that relationship intact (it may own saved items or
+  // discussions) while using its Google Place ID to show current aggregate
+  // Google Maps facts on the canonical page.
+  const directGooglePlaceId = typeof (place as any).google_place_id === "string" ? (place as any).google_place_id : null;
+  const { data: canonicalLiveRecord } = directGooglePlaceId
+    ? { data: null }
+    : await (supabase as any).from("places").select("google_place_id").eq("canonical_place_id", place.id).eq("is_external", true).not("google_place_id", "is", null).limit(1).maybeSingle();
+  const googlePlaceId = directGooglePlaceId ?? canonicalLiveRecord?.google_place_id ?? null;
+  const googlePlace = googlePlaceId ? await getGooglePlaceById(googlePlaceId) : null;
 
   const coverImage = typeof place.cover_image === "string" && place.cover_image.trim()
     ? place.cover_image.trim()
@@ -148,6 +158,8 @@ export async function getPlaceBySlug(
     images: displayImages,
     googlePhotoName: googlePlace?.photo?.name,
     googlePhotoAuthor: googlePlace?.photo?.authorName,
+    googleRating: googlePlace?.rating,
+    googleRatingCount: googlePlace?.userRatingCount,
     facts,
     verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly, hasEvCharging: (place as any).has_ev_charging, typicalVisitMinutes: (place as any).typical_visit_minutes },
     nearbyPlaces,

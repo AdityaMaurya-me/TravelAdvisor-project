@@ -188,7 +188,8 @@ export function NearbyExplorerMap() {
       setPlaces(result.places ?? []);
       setSelectedId(result.places?.[0]?.id ?? null);
       setState("ready");
-      setMessage(result.places?.length ? `${result.places.length} verified places within ${result.radius} km.` : `No verified places found within ${result.radius} km yet.`);
+      const cityLabel = result.city?.name ? ` in ${result.city.name}` : "";
+      setMessage(result.places?.length ? `${result.places.length} verified places${cityLabel} within ${result.radius} km.` : result.city ? `No verified places found in ${result.city.name} within ${result.radius} km yet.` : "We could not match your current location to a supported destination yet.");
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : "Unable to load nearby places.");

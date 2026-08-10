@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 const DEFAULT_RADIUS_KM = 25;
 const MAX_RADIUS_KM = 100;
 const MAX_RESULTS = 30;
+const CITY_MATCH_RADIUS_KM = 80;
 
 function readNumber(value: string | null) {
   if (!value) return null;
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from("v_place_map_marker")
-    .select("id, slug, name, location_label, rating, latitude, longitude")
+    .select("id, slug, name, level, parent_id, location_label, rating, latitude, longitude")
     .limit(500);
 
   if (error) {
@@ -34,12 +35,27 @@ export async function GET(request: NextRequest) {
   }
 
   const origin = { latitude, longitude };
-  const places = (data ?? [])
+  const markers = (data ?? []).flatMap((row: any) => {
+    const markerLatitude = Number(row.latitude);
+    const markerLongitude = Number(row.longitude);
+    if (!Number.isFinite(markerLatitude) || !Number.isFinite(markerLongitude)) return [];
+    return [{ ...row, latitude: markerLatitude, longitude: markerLongitude }];
+  });
+
+  // We do not have reverse-geocoding enabled in the browser. Resolve the
+  // current city from the nearest published destination, then use the actual
+  // parent relationship rather than merely showing every record in range.
+  // This also keeps the city/destination marker itself out of the results.
+  const currentCity = markers
+    .filter((row: any) => row.level === "destination")
+    .map((row: any) => ({ ...row, distanceKm: distanceInKilometres(origin, row) }))
+    .filter((row: any) => row.distanceKm <= CITY_MATCH_RADIUS_KM)
+    .sort((first: { distanceKm: number }, second: { distanceKm: number }) => first.distanceKm - second.distanceKm)[0] ?? null;
+
+  const places = markers
+    .filter((row: any) => currentCity && row.level !== "destination" && row.parent_id === currentCity.id)
     .flatMap((row: any) => {
-      const placeLatitude = Number(row.latitude);
-      const placeLongitude = Number(row.longitude);
-      if (!Number.isFinite(placeLatitude) || !Number.isFinite(placeLongitude)) return [];
-      const distanceKm = distanceInKilometres(origin, { latitude: placeLatitude, longitude: placeLongitude });
+      const distanceKm = distanceInKilometres(origin, row);
       if (distanceKm > radius) return [];
       return [{
         id: row.id,
@@ -47,13 +63,17 @@ export async function GET(request: NextRequest) {
         name: row.name,
         locationLabel: row.location_label,
         rating: row.rating === null ? null : Number(row.rating),
-        latitude: placeLatitude,
-        longitude: placeLongitude,
+        latitude: row.latitude,
+        longitude: row.longitude,
         distanceKm,
       }];
     })
     .sort((first: { distanceKm: number }, second: { distanceKm: number }) => first.distanceKm - second.distanceKm)
     .slice(0, MAX_RESULTS);
 
-  return NextResponse.json({ places, radius }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({
+    places,
+    radius,
+    city: currentCity ? { id: currentCity.id, name: currentCity.name } : null,
+  }, { headers: { "Cache-Control": "no-store" } });
 }

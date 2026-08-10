@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
@@ -49,7 +48,10 @@ export default function ProfilePage() {
       .from("profiles")
       .upsert({ id, display_name: name.trim(), avatar_url: avatar || null });
     setMessage(error?.message || "Profile updated.");
-    if (!error) router.refresh();
+    if (!error) {
+      window.dispatchEvent(new Event("traveladvisor:profile-updated"));
+      router.refresh();
+    }
   };
 
   const upload = async (file?: File) => {
@@ -83,6 +85,7 @@ export default function ProfilePage() {
       setAvatar(nextAvatar);
       URL.revokeObjectURL(localPreview);
       setAvatarPreview("");
+      window.dispatchEvent(new Event("traveladvisor:profile-updated"));
       setMessage("Profile photo updated everywhere.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "We could not upload that photo. Please try another image.");
@@ -123,7 +126,12 @@ export default function ProfilePage() {
         <div className="flex items-center gap-6">
           <div className="relative h-32 w-32 overflow-hidden rounded-full bg-slate-800">
             {avatarPreview || avatar ? (
-              avatarPreview ? <img src={avatarPreview} alt="Selected profile photo preview" className="h-full w-full object-cover" /> : <Image src={avatar} alt="Profile photo" fill sizes="160px" className="object-cover" />
+              <img
+                src={avatarPreview || avatar}
+                alt="Profile photo"
+                className="h-full w-full object-cover"
+                onError={() => { setAvatarPreview(""); setAvatar(""); setMessage("Your profile photo could not be displayed. Please upload it again."); }}
+              />
             ) : (
               <div className="grid h-full place-items-center text-4xl font-bold text-cyan-300">
                 {name.slice(0, 1).toUpperCase()}

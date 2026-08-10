@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Star } from "lucide-react";
 
 import { SaveDestinationButton } from "@/components/ui/save-destination-button";
 import { PlacePhoto } from "@/components/ui/place-photo";
@@ -96,6 +96,14 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
             {place.title}
           </h1>
           <BadgeCheck aria-label="Verified place" className="h-6 w-6 text-primary" />
+          {place.googleRating !== undefined && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2.5 py-1 text-sm font-medium text-amber-700 dark:text-amber-200">
+              <Star className="h-4 w-4 fill-current" />
+              {place.googleRating.toFixed(1)}
+              {place.googleRatingCount ? ` (${place.googleRatingCount.toLocaleString()})` : ""}
+              <span className="ml-1 text-xs font-normal text-muted-foreground">Google Maps rating</span>
+            </span>
+          )}
         </div>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground/85 sm:text-base">
           {place.description}
