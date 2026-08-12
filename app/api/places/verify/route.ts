@@ -30,5 +30,6 @@ export async function GET(request: NextRequest) {
       primaryType: place.primaryType ?? null,
     })),
     unavailable: Boolean(result.unavailableReason),
+    unavailableReason: result.unavailableReason ?? null,
   }, { headers: { "Cache-Control": "no-store" } });
 }

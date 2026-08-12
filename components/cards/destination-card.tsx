@@ -9,9 +9,11 @@ export interface Destination {
   title: string;
   location: string;
   image: string;
-  rating: number;
-  reviewCount: number;
+  rating: number | null;
+  reviewCount: number | null;
   href: string;
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
 }
 
 interface DestinationCardProps {
@@ -32,7 +34,12 @@ export function DestinationCard({
       <ImageCard
         image={destination.image}
         alt={destination.title}
-        href={href} children={undefined} />
+        href={href}
+        query={`${destination.title} ${destination.location}`}
+        googlePhotoName={destination.googlePhotoName}
+        googlePhotoAuthor={destination.googlePhotoAuthor}
+        children={undefined}
+      />
 
       <div className="space-y-2">
         <h3 className="line-clamp-1 text-lg font-semibold">
@@ -46,18 +53,12 @@ export function DestinationCard({
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-            <span className="font-medium">
-              {destination.rating.toFixed(1)}
-            </span>
+        {destination.rating !== null && destination.reviewCount !== null ? (
+          <div className="flex items-center gap-2 text-sm" aria-label={`Google Maps rating ${destination.rating.toFixed(1)} from ${destination.reviewCount.toLocaleString()} ratings`}>
+            <div className="flex items-center gap-1"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /><span className="font-medium">{destination.rating.toFixed(1)}</span></div>
+            <span className="text-muted-foreground">({destination.reviewCount.toLocaleString()} Google ratings)</span>
           </div>
-
-          <span className="text-muted-foreground">
-            ({destination.reviewCount.toLocaleString()})
-          </span>
-        </div>
+        ) : <p className="text-xs text-muted-foreground">Google rating pending verification</p>}
       </div>
     </article>
   );

@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import Navbar from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { PlacePhoto } from "@/components/ui/place-photo";
 import type { CategoryExplorer } from "@/lib/mock-data/category-explorer";
 
 export function CategoryExplorerPage({ category }: { category: CategoryExplorer }) {
@@ -64,7 +65,7 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
               <Link key={place.id} href={`/place/${place.slug}?from=${encodeURIComponent(categoryHref)}&fromLabel=Back%20to%20${encodeURIComponent(category.destination ? `${category.title} in ${category.destination.title}` : category.title)}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111e]">
               <article className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90 p-2 transition hover:border-cyan-500/50">
                 <div className="flex gap-4">
-                  <Image src={place.image} alt="" width={150} height={120} className="h-28 w-32 rounded-xl object-cover sm:w-40" />
+                  <div className="relative h-28 w-32 shrink-0 overflow-hidden rounded-xl sm:w-40"><PlacePhoto src={place.image} alt={place.title} query={`${place.title} ${place.location}`} googlePhotoName={place.googlePhotoName} googlePhotoAuthor={place.googlePhotoAuthor} sizes="(max-width: 640px) 8rem, 10rem" className="object-cover" /></div>
                   <div className="min-w-0 flex-1 py-1">
                     <div className="flex items-start justify-between gap-3">
                       <div>

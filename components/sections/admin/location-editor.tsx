@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ImagePlus } from "lucide-react";
+import { ExternalLink, ImagePlus, MapPinned } from "lucide-react";
 import Navbar from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +22,7 @@ const times = Array.from(
     `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`,
 );
 type Hours = Record<string, { closed: boolean; open: string; close: string }>;
+type GalleryImage = { id: string; url: string; alt_text: string | null; sort_order: number | null };
 const emptyHours = (): Hours =>
   Object.fromEntries(
     days.map((day) => [day, { closed: false, open: "09:00", close: "18:00" }]),
@@ -43,6 +43,8 @@ export function LocationEditor() {
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [coverPreview, setCoverPreview] = useState("");
+  const [coverImageFailed, setCoverImageFailed] = useState(false);
+  const [gallery, setGallery] = useState<GalleryImage[]>([]);
   useEffect(() => {
     void (async () => {
       const { data: role } = await supabase
@@ -55,7 +57,7 @@ export function LocationEditor() {
       const { data, error } = await supabase
         .from("places")
         .select(
-          "id,name,description,cover_image,opening_hours,entry_fee,website_url,phone,source_url,source_reference,parent_id,has_parking,has_washroom,has_ev_charging,is_pet_friendly,typical_visit_minutes",
+          "id,name,description,cover_image,opening_hours,entry_fee,website_url,phone,source_url,source_reference,parent_id,google_place_id,has_parking,has_washroom,has_ev_charging,is_pet_friendly,typical_visit_minutes",
         )
         .eq("slug", slug)
         .maybeSingle();
@@ -71,6 +73,7 @@ export function LocationEditor() {
           ]),
         ),
       );
+      setCoverImageFailed(false);
       const parsed = (() => {
         try {
           return JSON.parse(data.opening_hours ?? "");
@@ -80,7 +83,7 @@ export function LocationEditor() {
       })();
       if (parsed && typeof parsed === "object")
         setHours({ ...emptyHours(), ...parsed });
-      const [{ data: ds }, { data: cs }, { data: mappings }] =
+      const [{ data: ds }, { data: cs }, { data: mappings }, { data: galleryImages, error: galleryError }] =
         await Promise.all([
           supabase
             .from("places")
@@ -92,10 +95,17 @@ export function LocationEditor() {
             .from("place_categories")
             .select("category_id")
             .eq("place_id", data.id),
+          supabase
+            .from("place_images")
+            .select("id,url,alt_text,sort_order")
+            .eq("place_id", data.id)
+            .order("sort_order"),
         ]);
       setDestinations(ds ?? []);
       setCategories(cs ?? []);
       setSelectedCategories((mappings ?? []).map((m: any) => m.category_id));
+      if (galleryError) setMessage(galleryError.message);
+      else setGallery((galleryImages ?? []) as GalleryImage[]);
       if (data.entry_fee && data.entry_fee.toLowerCase() !== "free") {
         const values = data.entry_fee.match(/\d+/g) ?? [];
         setFeeMode("range");
@@ -104,42 +114,58 @@ export function LocationEditor() {
       }
     })();
   }, [slug]);
-  const upload = async (file?: File) => {
-    if (!file) return;
-    if (
-      !file.type.match(/^image\/(png|jpeg|webp)$/) ||
-      file.size > 5 * 1024 * 1024
-    ) {
-      setMessage("Choose a PNG, JPEG, or WebP image under 5 MB.");
-      return;
-    }
-    const preview = URL.createObjectURL(file);
+  const upload = async (files?: FileList | null) => {
+    const selected = Array.from(files ?? []);
+    if (!selected.length) return;
+    if (!form.id || !form.name) { setMessage("Wait for the location details to load before uploading images."); return; }
+    const invalid = selected.find((file) => !file.type.match(/^image\/(png|jpeg|webp)$/) || file.size > 5 * 1024 * 1024);
+    if (invalid) { setMessage("Every image must be PNG, JPEG, or WebP and under 5 MB."); return; }
+
+    const preview = URL.createObjectURL(selected[0]);
     setCoverPreview(preview);
+    setCoverImageFailed(false);
     setUploading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please sign in before uploading an image.");
-      const path = `${user.id}/admin-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-      const { error } = await supabase.storage
-        .from("place-images")
-        .upload(path, file, { cacheControl: "3600", upsert: false });
-      if (error) throw error;
-      const { data } = supabase.storage.from("place-images").getPublicUrl(path);
-      setForm((current) => ({ ...current, cover_image: data.publicUrl }));
+      const uploads: GalleryImage[] = [];
+      for (const [index, file] of selected.entries()) {
+        const path = `${user.id}/admin-${Date.now()}-${index}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+        const { error: uploadError } = await supabase.storage.from("place-images").upload(path, file, { cacheControl: "3600", upsert: false });
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from("place-images").getPublicUrl(path);
+        const { data: galleryRow, error: galleryError } = await supabase
+          .from("place_images")
+          .insert({ place_id: form.id, url: data.publicUrl, alt_text: form.name, sort_order: gallery.length + index })
+          .select("id,url,alt_text,sort_order")
+          .single();
+        if (galleryError || !galleryRow) throw galleryError ?? new Error("The uploaded photo could not be added to the gallery.");
+        uploads.push(galleryRow as GalleryImage);
+      }
+      setGallery((current) => [...current, ...uploads]);
+      if (!form.cover_image) setForm((current) => ({ ...current, cover_image: uploads[0].url }));
+      setMessage(`${uploads.length} display photo${uploads.length === 1 ? "" : "s"} added. Choose one as the fixed card and banner cover.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "We could not upload those photos.");
+    } finally {
       URL.revokeObjectURL(preview);
       setCoverPreview("");
-      setMessage("Cover image uploaded. Save changes to publish it.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "We could not upload that photo.",
-      );
-    } finally {
       setUploading(false);
     }
+  };
+
+  const setCover = (url: string) => {
+    setCoverImageFailed(false);
+    setForm((current) => ({ ...current, cover_image: url }));
+    setMessage("Cover selected. Save changes to use it across cards and destination banners.");
+  };
+
+  const removeGalleryImage = async (image: GalleryImage) => {
+    if (image.url === form.cover_image) { setMessage("Choose another cover before removing this image from the gallery."); return; }
+    const { error } = await supabase.from("place_images").delete().eq("id", image.id);
+    if (error) { setMessage(error.message); return; }
+    setGallery((current) => current.filter((entry) => entry.id !== image.id));
+    setMessage("Image removed from this location gallery.");
   };
   const save = async () => {
     const payload = {
@@ -215,44 +241,79 @@ export function LocationEditor() {
               className={`${input} min-h-28`}
             />
           </label>
+          <section className="rounded-xl border border-cyan-400/25 bg-cyan-400/5 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2"><MapPinned className="h-4 w-4 text-cyan-300" /><h2 className="font-semibold">Google Maps connection</h2></div>
+                <p className="mt-1 text-sm text-muted-foreground">This exact Google place powers the live Google Maps link, rating, factual data, and automatic Google photo fallback for this location.</p>
+              </div>
+              <button type="button" onClick={() => router.push(`/admin/google-matches?place=${encodeURIComponent(slug)}`)} className="rounded-lg border border-cyan-400/40 px-3 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-400/10">{form.google_place_id ? "Review Google match" : "Match with Google Maps"}</button>
+            </div>
+            {form.google_place_id ? <a href={`https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(form.google_place_id)}`} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-cyan-300 hover:text-cyan-200"><ExternalLink className="h-4 w-4" />Open exact Google Maps location</a> : <p className="mt-3 text-sm text-amber-700 dark:text-amber-200">No exact Google Maps match yet. Add one before relying on live Google facts or photos.</p>}
+          </section>
           <div>
-            <p className="text-sm font-medium">Cover image</p>
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">Fixed cover image</p>
+                <p className="mt-1 text-xs text-muted-foreground">This one image is used on every location card and the destination/banner view.</p>
+              </div>
+              {form.cover_image && <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-300">Current cover</span>}
+            </div>
             {coverPreview ? (
               <img
                 src={coverPreview}
                 alt="Selected cover preview"
                 className="mt-3 aspect-video w-full rounded-xl object-cover"
               />
-            ) : form.cover_image ? (
-              <Image
+            ) : form.cover_image && !coverImageFailed ? (
+              <img
                 src={form.cover_image}
                 alt="Current cover"
-                width={640}
-                height={360}
                 className="mt-3 aspect-video w-full rounded-xl object-cover"
+                onError={() => {
+                  setCoverImageFailed(true);
+                  setMessage("The saved cover image could not be loaded. Choose another image and save the record again.");
+                }}
               />
             ) : (
               <div className="mt-3 grid aspect-video w-full place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
-                No cover image selected
+                {form.cover_image ? "This cover image is unavailable" : "No cover image selected"}
               </div>
             )}
             <input
-              id="admin-cover"
+              id="admin-gallery"
               type="file"
               accept="image/png,image/jpeg,image/webp"
+              multiple
               className="sr-only"
               onChange={(e) => {
-                void upload(e.target.files?.[0]);
+                void upload(e.target.files);
                 e.currentTarget.value = "";
               }}
             />
             <label
-              htmlFor="admin-cover"
+              htmlFor="admin-gallery"
               className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-cyan-400/40 px-3 py-2 text-sm text-cyan-400"
             >
               <ImagePlus className="h-4 w-4" />
               {uploading ? "Uploading…" : "Upload new image"}
             </label>
+            <p className="mt-2 text-xs text-muted-foreground">You can select several PNG, JPEG, or WebP files at once (up to 5 MB each).</p>
+            <div className="mt-5">
+              <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">Location gallery</p><span className="text-xs text-muted-foreground">{gallery.length} uploaded</span></div>
+              {gallery.length ? <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {gallery.map((image) => {
+                  const isCover = image.url === form.cover_image;
+                  return <article key={image.id} className={`overflow-hidden rounded-xl border bg-background ${isCover ? "border-cyan-400 ring-1 ring-cyan-400/40" : "border-border"}`}>
+                    <img src={image.url} alt={image.alt_text || `${form.name || "Location"} display photo`} className="aspect-square w-full object-cover" />
+                    <div className="flex items-center justify-between gap-2 p-2">
+                      <button type="button" onClick={() => setCover(image.url)} disabled={isCover} className="min-w-0 truncate text-xs font-medium text-cyan-300 disabled:text-muted-foreground">{isCover ? "Fixed cover" : "Set as cover"}</button>
+                      <button type="button" onClick={() => void removeGalleryImage(image)} disabled={isCover} className="text-xs text-red-300 disabled:cursor-not-allowed disabled:text-muted-foreground">Remove</button>
+                    </div>
+                  </article>;
+                })}
+              </div> : <p className="mt-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Add gallery images to give visitors more views of this location.</p>}
+            </div>
           </div>
           <section className="grid gap-4 sm:grid-cols-2">
             <label>

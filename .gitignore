@@ -20,3 +20,4 @@ blob-report/
 node_modules
 .next/
 .DS_Store
+description.md

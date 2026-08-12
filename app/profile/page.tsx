@@ -49,7 +49,7 @@ export default function ProfilePage() {
       .upsert({ id, display_name: name.trim(), avatar_url: avatar || null });
     setMessage(error?.message || "Profile updated.");
     if (!error) {
-      window.dispatchEvent(new Event("traveladvisor:profile-updated"));
+      window.dispatchEvent(new CustomEvent("traveladvisor:profile-updated", { detail: { name: name.trim(), avatar } }));
       router.refresh();
     }
   };
@@ -68,6 +68,10 @@ export default function ProfilePage() {
 
     const localPreview = URL.createObjectURL(file);
     setAvatarPreview(localPreview);
+    // Keep the header avatar in sync with the local preview while the upload
+    // is in progress. It is replaced with the persisted Storage URL on
+    // success, or restored to the previous avatar on failure.
+    window.dispatchEvent(new CustomEvent("traveladvisor:profile-updated", { detail: { name: name.trim() || email.split("@")[0] || "Traveller", avatar: localPreview } }));
     setIsUploading(true);
     setMessage("Uploading profile photo…");
     try {
@@ -85,9 +89,12 @@ export default function ProfilePage() {
       setAvatar(nextAvatar);
       URL.revokeObjectURL(localPreview);
       setAvatarPreview("");
-      window.dispatchEvent(new Event("traveladvisor:profile-updated"));
+      window.dispatchEvent(new CustomEvent("traveladvisor:profile-updated", { detail: { name: name.trim() || email.split("@")[0] || "Traveller", avatar: nextAvatar } }));
       setMessage("Profile photo updated everywhere.");
     } catch (error) {
+      URL.revokeObjectURL(localPreview);
+      setAvatarPreview("");
+      window.dispatchEvent(new CustomEvent("traveladvisor:profile-updated", { detail: { name: name.trim() || email.split("@")[0] || "Traveller", avatar } }));
       setMessage(error instanceof Error ? error.message : "We could not upload that photo. Please try another image.");
     } finally {
       setIsUploading(false);

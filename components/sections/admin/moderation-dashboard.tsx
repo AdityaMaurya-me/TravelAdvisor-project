@@ -18,7 +18,7 @@ const date = (value: string) => new Intl.DateTimeFormat("en", { day: "numeric", 
 const adminActions = [
   { href: "/admin/locations", title: "Manage published locations", description: "Edit, unpublish, or restore catalogue records.", icon: MapPin },
   { href: "/admin/data-quality", title: "Catalogue integrity", description: "Find missing images, coordinates, and destination links.", icon: ClipboardCheck },
-  { href: "/admin/google-matches", title: "Google place matches", description: "Link catalogue records to their exact Google Maps place.", icon: MapPinned },
+  { href: "/admin/google-matches", title: "Google Maps connections", description: "Control each location’s exact Google Maps link, live facts, and photo fallback.", icon: MapPinned },
   { href: "/admin/activity", title: "View activity logs", description: "Review permanent administrative history.", icon: Activity },
 ];
 

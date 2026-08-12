@@ -30,8 +30,8 @@ export default async function DiscoverDestinationPage({ params, searchParams }: 
     googlePhotoAuthor: destination.photo?.authorName,
     googlePlaceId: destination.id,
     isLive: true,
-    rating: destination.rating ?? 0,
-    reviewCount: destination.userRatingCount ?? 0,
+    rating: destination.rating ?? null,
+    reviewCount: destination.userRatingCount ?? null,
     facts: [
       { label: "Route", value: "Plan your route", detail: "From your location", icon: "route" },
       { label: "Discovery", value: `${livePlaces.length} live places`, detail: "Current Google listings", icon: "calendar" },

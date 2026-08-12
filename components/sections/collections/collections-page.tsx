@@ -10,6 +10,7 @@ import { Footer } from "@/components/layout/footer";
 import { supabase } from "@/lib/supabase";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
 import { AppModal } from "@/components/ui/app-modal";
+import { PlacePhoto } from "@/components/ui/place-photo";
 import { ShareTripButton } from "@/components/sections/collections/share-trip-button";
 import { getGuestSavedPlaceSlugs } from "@/lib/saved-places/guest";
 import {
@@ -366,7 +367,7 @@ export function CollectionsPage() {
           <div className="relative z-0 mt-5 overflow-visible rounded-2xl border border-slate-800 bg-slate-900/80">
             {visiblePlaces.map((place) => (
               <div key={place.placeId} className={`relative flex items-center gap-4 border-b border-slate-800 p-3 last:border-0 ${openMenu === `place-${place.placeId}` ? "z-20" : "z-0"}`}>
-                <Link href={`/place/${place.slug}?from=/collections&fromLabel=Back%20to%20Collections`} className="group flex min-w-0 flex-1 items-center gap-4"><div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg"><Image src={place.image} alt="" fill sizes="64px" className="object-cover" /></div><div className="min-w-0"><h3 className="font-medium group-hover:text-cyan-200">{place.title}</h3><p className="mt-1 text-xs text-slate-400">{place.location}</p></div></Link>
+                <Link href={`/place/${place.slug}?from=/collections&fromLabel=Back%20to%20Collections`} className="group flex min-w-0 flex-1 items-center gap-4"><div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg"><PlacePhoto src={place.image} alt={place.title} query={`${place.title} ${place.location}`} sizes="64px" className="object-cover" /></div><div className="min-w-0"><h3 className="font-medium group-hover:text-cyan-200">{place.title}</h3><p className="mt-1 text-xs text-slate-400">{place.location}</p></div></Link>
                 <button type="button" onClick={() => {
                   if (activeCollectionId === "all") setRemovalTarget(place);
                   else {

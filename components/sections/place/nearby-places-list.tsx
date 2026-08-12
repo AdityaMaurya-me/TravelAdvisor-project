@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import type { PlacePreview } from "@/lib/mock-data/destinations";
+import { PlacePhoto } from "@/components/ui/place-photo";
 
 interface NearbyPlacesListProps {
   places: PlacePreview[];
@@ -24,13 +24,7 @@ export function NearbyPlacesList({ places, href, backHref, backLabel }: NearbyPl
               className="group flex items-center gap-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border/60">
-                <Image
-                  src={place.image}
-                  alt=""
-                  fill
-                  sizes="56px"
-                  className="object-cover transition-transform duration-300 group-hover:scale-110"
-                />
+                <PlacePhoto src={place.image} alt={place.title} query={`${place.title} ${place.location}`} googlePhotoName={place.googlePhotoName} googlePhotoAuthor={place.googlePhotoAuthor} sizes="56px" className="object-cover transition-transform duration-300 group-hover:scale-110" />
               </div>
               <div className="min-w-0">
                 <p className="line-clamp-1 text-sm font-semibold text-foreground transition-colors group-hover:text-primary">

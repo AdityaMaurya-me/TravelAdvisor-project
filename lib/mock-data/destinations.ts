@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDestinationMapMarkers, type DetailMapMarker } from "@/lib/data/detail-maps";
-import { countLiveDestinationCategories, getGoogleDestinationPlaces } from "@/lib/google-places";
+import { getGooglePlaceById } from "@/lib/google-places";
 
 export type DestinationFactIcon =
   | "route"
@@ -50,8 +50,8 @@ export interface DestinationDetail {
   location: string;
   description: string;
   image: string;
-  rating: number;
-  reviewCount: number;
+  rating: number | null;
+  reviewCount: number | null;
   facts: DestinationFact[];
   categories: DestinationCategory[];
   routePlaces: PlacePreview[];
@@ -73,9 +73,11 @@ export interface DestinationSummary {
   title: string;
   location: string;
   image: string;
-  rating: number;
-  reviewCount: number;
+  rating: number | null;
+  reviewCount: number | null;
   href: string;
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
 }
 
 // ------------------------------------------------------------
@@ -100,20 +102,28 @@ const CATEGORY_ICON_MAP: Record<string, DestinationCategoryIcon> = {
 export async function getDestinationSummaries(): Promise<DestinationSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("v_place_card")
-    .select("*")
-    .eq("level", "city");
+    .from("places")
+    .select("id,slug,name,city,state,country,cover_image,google_place_id")
+    .eq("level", "city")
+    .eq("is_published", true)
+    .eq("is_external", false)
+    .order("name");
 
   if (error || !data) return [];
 
-  return data.map((row) => ({
-    id: row.slug ?? "",
-    title: row.title ?? "Untitled destination",
-    location: row.location ?? "",
-    image: row.image ?? "/placeholder.jpg",
-    rating: row.rating ?? 0,
-    reviewCount: row.review_count ?? 0,
-    href: `/destination/${row.slug ?? ""}`,
+  return Promise.all(data.map(async (row) => {
+    const googlePlace = typeof row.google_place_id === "string" ? await getGooglePlaceById(row.google_place_id) : null;
+    return {
+      id: row.slug ?? "",
+      title: row.name ?? "Untitled destination",
+      location: [row.city, row.state, row.country].filter(Boolean).join(", "),
+      image: row.cover_image ?? "/placeholder.jpg",
+      rating: googlePlace?.rating ?? null,
+      reviewCount: googlePlace?.userRatingCount ?? null,
+      href: `/destination/${row.slug ?? ""}`,
+      googlePhotoName: googlePlace?.photo?.name,
+      googlePhotoAuthor: googlePlace?.photo?.authorName,
+    };
   }));
 }
 
@@ -133,12 +143,16 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     .single();
 
   if (placeError || !place) return null;
+  const googlePlace = typeof place.google_place_id === "string" ? await getGooglePlaceById(place.google_place_id) : null;
 
   // 2. Category counts scoped to this destination's attractions
   const { data: taggedPlaces } = await supabase
     .from("places")
     .select("id, place_categories(category_id, categories(slug, name, icon))")
-    .eq("parent_id", place.id);
+    .eq("parent_id", place.id)
+    .eq("level", "attraction")
+    .eq("is_published", true)
+    .eq("is_external", false);
 
   const categoryCounts = new Map<string, { title: string; icon: string; count: number }>();
   (taggedPlaces ?? []).forEach((p: any) => {
@@ -162,25 +176,33 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
       icon: CATEGORY_ICON_MAP[slugKey] ?? "landmark",
       href: `/categories/${slugKey}?destination=${encodeURIComponent(place.slug)}`,
     })
-  );
+  ).sort((first, second) => first.title.localeCompare(second.title));
 
   // 3. Places that belong to this destination (children in the hierarchy)
   const { data: children } = await supabase
     .from("places")
-    .select("slug, name, cover_image")
+    .select("slug, name, cover_image, google_place_id")
     .eq("parent_id", place.id)
-    .eq("level", "attraction");
+    .eq("level", "attraction")
+    .eq("is_published", true)
+    .eq("is_external", false)
+    .order("name");
 
-  const toPreview = (row: any): PlacePreview => ({
+  const toPreview = async (row: any): Promise<PlacePreview> => {
+    const googlePlace = typeof row.google_place_id === "string" ? await getGooglePlaceById(row.google_place_id) : null;
+    return {
     id: row.slug,
     title: row.name,
     location: place.name,
-    image: row.cover_image,
+    image: row.cover_image || "/placeholder.jpg",
     href: `/place/${row.slug}`,
-  });
+    googlePhotoName: googlePlace?.photo?.name,
+    googlePhotoAuthor: googlePlace?.photo?.authorName,
+  };
+  };
 
-  const allChildren = (children ?? []).map(toPreview);
-  const [{ data: route }, mapPlaces, liveGooglePlaces] = await Promise.all([
+  const allChildren = await Promise.all((children ?? []).map(toPreview));
+  const [{ data: route }, mapPlaces] = await Promise.all([
     supabase
     .from("routes")
     .select("slug")
@@ -188,32 +210,7 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     .limit(1)
     .maybeSingle(),
     getDestinationMapMarkers(place.id),
-    getGoogleDestinationPlaces(place.name, 8),
   ]);
-
-  const livePlaces = liveGooglePlaces
-    .filter((livePlace) => livePlace.name.trim().toLocaleLowerCase() !== place.name.trim().toLocaleLowerCase())
-    .map((livePlace) => ({
-      id: livePlace.id,
-      title: livePlace.name,
-      location: livePlace.address || place.name,
-      image: "/placeholder.jpg",
-      googlePhotoName: livePlace.photo?.name,
-      googlePhotoAuthor: livePlace.photo?.authorName,
-      href: `/discover/${encodeURIComponent(livePlace.id)}?from=${encodeURIComponent(`/destination/${place.slug}`)}&fromLabel=${encodeURIComponent(`Back to ${place.name}`)}`,
-    }));
-  const liveCategoryCounts = countLiveDestinationCategories(liveGooglePlaces);
-  const categoryMap = new Map(categories.map((category) => [category.id, category]));
-  liveCategoryCounts.forEach((liveCategory) => {
-    const existing = categoryMap.get(liveCategory.id);
-    categoryMap.set(liveCategory.id, {
-      id: liveCategory.id,
-      title: liveCategory.title,
-      placeCount: (existing?.placeCount ?? 0) + liveCategory.count,
-      icon: CATEGORY_ICON_MAP[liveCategory.id] ?? (liveCategory.id === "cafes" ? "cafe" : liveCategory.id === "local-food" ? "food" : liveCategory.id === "nature" ? "gem" : "landmark"),
-      href: `/search/${encodeURIComponent(`${liveCategory.query} in ${place.name}`)}`,
-    });
-  });
 
   return {
     slug: place.slug,
@@ -221,20 +218,23 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     location: [place.city, place.state].filter(Boolean).join(", "),
     description: place.description ?? "",
     image: place.cover_image ?? "/placeholder.jpg",
-    rating: place.rating ?? 0,
-    reviewCount: place.review_count ?? 0,
+    rating: googlePlace?.rating ?? null,
+    reviewCount: googlePlace?.userRatingCount ?? null,
     facts: [
       { label: "Distance", value: "Plan your route", detail: "From your location", icon: "route" },
       { label: "Best season", value: "Seasonal", detail: "Explore monthly highlights", icon: "calendar" },
       { label: "Typical budget", value: "Varies", detail: "Based on your plans", icon: "wallet" },
     ],
-    categories: Array.from(categoryMap.values()),
+    // Categories on a verified destination are strictly its published child
+    // places. Mixing in a live Google search here made one destination's
+    // category cards lead to the generic catalogue and appear to change.
+    categories,
     routePlaces: allChildren.slice(0, 4),
     communityFavorites: allChildren.slice(0, 4),
     mapPlaces,
     routeHref: route ? `/route/${route.slug}` : undefined,
-    livePlaces,
-    livePlacesHref: `/search/${encodeURIComponent(`places to visit in ${place.name}`)}`,
+    googlePhotoName: googlePlace?.photo?.name,
+    googlePhotoAuthor: googlePlace?.photo?.authorName,
   };
 }
 

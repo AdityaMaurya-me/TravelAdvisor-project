@@ -35,8 +35,16 @@ export function UserMenu() {
     };
     void load();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => { void load(); });
-    window.addEventListener("traveladvisor:profile-updated", load);
-    return () => { subscription.unsubscribe(); window.removeEventListener("traveladvisor:profile-updated", load); };
+    const syncProfile = (event: Event) => {
+      const detail = (event as CustomEvent<{ name?: string; avatar?: string }>).detail;
+      if (detail) {
+        if (typeof detail.name === "string") setName(detail.name || "Traveller");
+        if (typeof detail.avatar === "string") setAvatar(detail.avatar);
+      }
+      void load();
+    };
+    window.addEventListener("traveladvisor:profile-updated", syncProfile);
+    return () => { subscription.unsubscribe(); window.removeEventListener("traveladvisor:profile-updated", syncProfile); };
   }, []);
   useEffect(() => {
     const closeMenus = (event: MouseEvent) => { if (!rootRef.current?.contains(event.target as Node)) { setIsAccountOpen(false); setIsNotificationsOpen(false); } };

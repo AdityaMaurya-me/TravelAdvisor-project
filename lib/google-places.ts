@@ -28,6 +28,8 @@ export type GooglePlaceSearchResponse = {
 const fields = "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.types,places.photos,places.googleMapsUri";
 const SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 const searchCache = new Map<string, { expiresAt: number; result: GooglePlaceSearchResponse }>();
+const DETAIL_CACHE_TTL_MS = 10 * 60 * 1000;
+const detailCache = new Map<string, { expiresAt: number; place: GooglePlaceDetail | null }>();
 
 function toGooglePlace(place: any): GooglePlace | null {
   const latitude = Number(place?.location?.latitude);
@@ -153,6 +155,9 @@ export async function getGooglePlaceById(placeId: string): Promise<GooglePlaceDe
   const apiKey = process.env.GOOGLE_MAPS_DEMO_API_KEY;
   if (!apiKey || !/^[A-Za-z0-9_-]{8,200}$/.test(placeId)) return null;
 
+  const cached = detailCache.get(placeId);
+  if (cached && cached.expiresAt > Date.now()) return cached.place;
+
   try {
     const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
       headers: {
@@ -161,9 +166,11 @@ export async function getGooglePlaceById(placeId: string): Promise<GooglePlaceDe
       },
       cache: "no-store",
     });
-    if (!response.ok) return null;
-    return toGooglePlaceDetail(await response.json());
+    const place = response.ok ? toGooglePlaceDetail(await response.json()) : null;
+    detailCache.set(placeId, { expiresAt: Date.now() + (place ? DETAIL_CACHE_TTL_MS : 30_000), place });
+    return place;
   } catch {
+    detailCache.set(placeId, { expiresAt: Date.now() + 30_000, place: null });
     return null;
   }
 }

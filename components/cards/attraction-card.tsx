@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import { MapPin } from 'lucide-react'
+import { PlacePhoto } from '@/components/ui/place-photo'
 
 interface AttractionCardProps {
   id: string
@@ -16,10 +16,9 @@ export default function AttractionCard({ id, image, title, description, paragrap
     <div className="flex flex-col gap-3 bg-gray-900/80 rounded-lg overflow-hidden hover:bg-gray-800/80 transition-colors h-full">
       {/* Image */}
       <div className="relative w-full h-40 shrink-0">
-        <Image
+        <PlacePhoto
           src={image}
           alt={title}
-          fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover"
         />

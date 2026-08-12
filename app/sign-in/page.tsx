@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/layout/navbar";
 import { getLastSignInEmail, rememberSignInEmail } from "@/lib/auth/last-email";
 import { supabase } from "@/lib/supabase";
+import { CaptchaChallenge } from "@/components/auth/captcha-challenge";
+import { isStrongPassword, PASSWORD_REQUIREMENTS_MESSAGE, sendAuthRequest } from "@/components/auth/auth-request";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -17,6 +19,8 @@ export default function SignInPage() {
   const [lastEmail, setLastEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaRequired, setCaptchaRequired] = useState(Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY));
+  const [captchaToken, setCaptchaToken] = useState("");
   const next = searchParams.get("next");
   const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/collections";
 
@@ -24,21 +28,27 @@ export default function SignInPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSignUp && !isStrongPassword(password)) { setMessage(PASSWORD_REQUIREMENTS_MESSAGE); return; }
+    if (!isSignUp && !isStrongPassword(password)) {
+      router.push(`/forgot-password?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      return;
+    }
     setIsLoading(true);
     setMessage("");
-    const result = isSignUp
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
+    const result = await sendAuthRequest(isSignUp ? "signup" : "signin", { email, password, captchaToken });
     setIsLoading(false);
-
-    if (result.error) {
-      setMessage(result.error.message);
+    setCaptchaRequired(Boolean(result.captchaRequired));
+    if (result.passwordUpgradeRequired) {
+      router.push(`/forgot-password?email=${encodeURIComponent(email.trim().toLowerCase())}`);
       return;
     }
-    if (isSignUp && !result.data.session) {
-      setMessage("Your account was created. Check your email to confirm it, then sign in.");
+    if (!result.ok || (isSignUp && !result.session)) {
+      setMessage(result.message ?? "We could not complete that request. Check your details and try again.");
       return;
     }
+    if (!result.session) { setMessage("We could not complete that request. Check your details and try again."); return; }
+    const { error: sessionError } = await supabase.auth.setSession(result.session);
+    if (sessionError) { setMessage("We could not complete that request. Check your details and try again."); return; }
 
     rememberSignInEmail(email);
     router.push(nextPath);
@@ -47,7 +57,7 @@ export default function SignInPage() {
 
   const switchMode = (mode: boolean) => {
     setIsSignUp(mode);
-    setMessage("");
+    setMessage(""); setCaptchaRequired(Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)); setCaptchaToken("");
   };
 
   return (
@@ -60,9 +70,12 @@ export default function SignInPage() {
           <form onSubmit={submit} className="space-y-5 rounded-2xl border border-gray-800 bg-gray-950/40 p-6">
             <label className="block text-sm font-medium text-gray-300">Email address<input required type="email" name="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 text-white outline-none focus:border-cyan-400" /></label>
             {!isSignUp && lastEmail && email !== lastEmail && <button type="button" onClick={() => setEmail(lastEmail)} className="-mt-2 flex items-center gap-2 rounded-lg border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-left text-sm text-cyan-100"><span className="text-cyan-300">↗</span> Continue as <span className="font-medium">{lastEmail}</span></button>}
-            <label className="block text-sm font-medium text-gray-300">Password<input required minLength={6} type="password" name="password" autoComplete={isSignUp ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 text-white outline-none focus:border-cyan-400" /></label>
+            <label className="block text-sm font-medium text-gray-300">Password<input required minLength={isSignUp ? 12 : 1} type="password" name="password" autoComplete={isSignUp ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 text-white outline-none focus:border-cyan-400" /></label>
+            {isSignUp && <p className="-mt-3 text-xs text-gray-400">{PASSWORD_REQUIREMENTS_MESSAGE}</p>}
+            {!isSignUp && <Link href="/forgot-password" className="inline-block text-sm text-cyan-300 hover:underline">Forgot password?</Link>}
+            {captchaRequired && <CaptchaChallenge onToken={setCaptchaToken} />}
             {message && <p className="rounded-lg bg-cyan-400/10 p-3 text-sm text-cyan-100">{message}</p>}
-            <button disabled={isLoading} className="w-full rounded-lg bg-cyan-400 px-4 py-3 font-semibold text-slate-950 disabled:opacity-60">{isLoading ? "Please wait..." : isSignUp ? "Create account" : "Sign in"}</button>
+            <button disabled={isLoading || (captchaRequired && !captchaToken)} className="w-full rounded-lg bg-cyan-400 px-4 py-3 font-semibold text-slate-950 disabled:opacity-60">{isLoading ? "Please wait..." : isSignUp ? "Create account" : "Sign in"}</button>
           </form>
           <Link href="/" className="block text-center text-sm text-gray-400 hover:text-gray-200">← Back to Home</Link>
         </div>

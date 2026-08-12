@@ -45,10 +45,9 @@ export function DestinationHero({
               <MapPin aria-hidden="true" className="h-4 w-4" />
               {destination.location}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-foreground">
-              <Star aria-hidden="true" className="h-4 w-4 fill-amber-400 text-amber-400" />
-              {destination.rating.toFixed(1)} ({destination.reviewCount.toLocaleString()} reviews)
-            </span>
+            {destination.rating !== null && destination.reviewCount !== null ? (
+              <span className="inline-flex items-center gap-1.5 text-foreground"><Star aria-hidden="true" className="h-4 w-4 fill-amber-400 text-amber-400" />{destination.rating.toFixed(1)} ({destination.reviewCount.toLocaleString()} Google ratings)</span>
+            ) : <span className="text-xs">Google rating pending verification</span>}
           </div>
           <p className="mt-6 max-w-xl text-sm leading-6 text-foreground/85 sm:text-base">
             {destination.description}

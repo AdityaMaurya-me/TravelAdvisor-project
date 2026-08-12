@@ -33,7 +33,7 @@ export function DestinationDetails({ destination, backHref, backLabel }: Destina
             actionLabel={destination.isLive ? "Browse live categories" : "Browse categories"}
           />
           <div className="mt-6">
-            <DestinationCategoryGrid categories={destination.categories} destinationSlug={destination.slug} />
+            <DestinationCategoryGrid categories={destination.categories} />
           </div>
           <div className="mt-8">
             <DetailMap markers={destination.mapPlaces} title={`${destination.title} explorer`} mode="destination" />

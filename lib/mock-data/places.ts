@@ -28,7 +28,7 @@ export interface PlaceDetail {
   googleRating?: number;
   googleRatingCount?: number;
   facts: PlaceFact[];
-  verifiedInfo: { openingHours?: string; entryFee?: string; websiteUrl?: string; phone?: string; sourceUrl?: string; sourceReference?: string; lastVerifiedAt?: string; hasParking?: boolean | null; hasWashroom?: boolean | null; isPetFriendly?: boolean | null; hasEvCharging?: boolean | null; typicalVisitMinutes?: number | null };
+  verifiedInfo: { openingHours?: string; entryFee?: string; websiteUrl?: string; phone?: string; googleMapsUrl: string; sourceUrl?: string; sourceReference?: string; lastVerifiedAt?: string; hasParking?: boolean | null; hasWashroom?: boolean | null; isPetFriendly?: boolean | null; hasEvCharging?: boolean | null; typicalVisitMinutes?: number | null };
   nearbyPlaces: PlacePreview[];
   mapMarker: DetailMapMarker | null;
 }
@@ -46,6 +46,35 @@ function hasRelatedGalleryCaption(
   // A gallery upload without a meaningful caption cannot be verified as this
   // place. Hiding it is safer than showing an unrelated landmark photograph.
   return [...placeWords, ...destinationWords].some((word) => searchable.includes(word));
+}
+
+/**
+ * Every public location gets a usable Google Maps hand-off. Prefer the
+ * canonical URI supplied by Google, then the precise Place ID, then the
+ * verified pin. The name/address search is a final catalogue-safe fallback
+ * for the small number of legacy records still awaiting a Google match.
+ */
+function getGoogleMapsUrl({
+  googleMapsUri,
+  googlePlaceId,
+  marker,
+  name,
+  address,
+}: {
+  googleMapsUri?: string;
+  googlePlaceId?: string | null;
+  marker: DetailMapMarker | null;
+  name: string;
+  address?: string | null;
+}) {
+  if (googleMapsUri) return googleMapsUri;
+  if (googlePlaceId) {
+    return `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(googlePlaceId)}`;
+  }
+  if (marker) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${marker.latitude},${marker.longitude}`)}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([name, address].filter(Boolean).join(", "))}`;
 }
 
 /**
@@ -137,6 +166,13 @@ export async function getPlaceBySlug(
     : await (supabase as any).from("places").select("google_place_id").eq("canonical_place_id", place.id).eq("is_external", true).not("google_place_id", "is", null).limit(1).maybeSingle();
   const googlePlaceId = directGooglePlaceId ?? canonicalLiveRecord?.google_place_id ?? null;
   const googlePlace = googlePlaceId ? await getGooglePlaceById(googlePlaceId) : null;
+  const googleMapsUrl = getGoogleMapsUrl({
+    googleMapsUri: googlePlace?.googleMapsUri,
+    googlePlaceId,
+    marker: mapMarker,
+    name: place.name,
+    address: place.address,
+  });
 
   const coverImage = typeof place.cover_image === "string" && place.cover_image.trim()
     ? place.cover_image.trim()
@@ -161,7 +197,7 @@ export async function getPlaceBySlug(
     googleRating: googlePlace?.rating,
     googleRatingCount: googlePlace?.userRatingCount,
     facts,
-    verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly, hasEvCharging: (place as any).has_ev_charging, typicalVisitMinutes: (place as any).typical_visit_minutes },
+    verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, googleMapsUrl, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly, hasEvCharging: (place as any).has_ev_charging, typicalVisitMinutes: (place as any).typical_visit_minutes },
     nearbyPlaces,
     mapMarker,
   };

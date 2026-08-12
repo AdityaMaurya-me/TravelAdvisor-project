@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getGooglePlaceById } from "@/lib/google-places";
 
 export interface CategoryExplorerPlace {
   id: string;
@@ -10,6 +11,8 @@ export interface CategoryExplorerPlace {
   rating: number;
   reviewCount: number;
   distance: string;
+  googlePhotoName?: string;
+  googlePhotoAuthor?: string;
 }
 
 export interface CategoryExplorer {
@@ -53,6 +56,8 @@ function toExplorerPlace(place: any): CategoryExplorerPlace {
     rating: Number(place.rating ?? 0),
     reviewCount: Number(place.review_count ?? 0),
     distance: "Explore nearby",
+    googlePhotoName: place.googlePhotoName,
+    googlePhotoAuthor: place.googlePhotoAuthor,
   };
 }
 
@@ -79,13 +84,17 @@ export async function getCategoryExplorer(slug: string, destinationSlug?: string
 
   const { data: mappings } = await supabase
     .from("place_categories")
-    .select("places(slug, name, city, state, address, description, cover_image, rating, review_count, is_published, parent_id)")
+    .select("places(slug, name, city, state, address, description, cover_image, rating, review_count, is_published, is_external, parent_id, google_place_id)")
     .eq("category_id", category.id);
 
-  const places = (mappings ?? [])
+  const rawPlaces = (mappings ?? [])
     .map((mapping: any) => mapping.places)
-    .filter((place: any) => place?.is_published && (!destination || place.parent_id === destination.id))
-    .map(toExplorerPlace);
+    .filter((place: any) => place?.is_published && !place?.is_external && (!destination || place.parent_id === destination.id));
+  const places = (await Promise.all(rawPlaces.map(async (place: any) => {
+    const googlePlace = typeof place.google_place_id === "string" ? await getGooglePlaceById(place.google_place_id) : null;
+    return toExplorerPlace({ ...place, googlePhotoName: googlePlace?.photo?.name, googlePhotoAuthor: googlePlace?.photo?.authorName });
+  })))
+    .sort((first, second) => first.title.localeCompare(second.title));
   const copy = CATEGORY_COPY[category.slug] ?? defaultCopy(category.name);
 
   return {
@@ -104,7 +113,12 @@ export async function getCategoryExplorers(destinationSlug?: string): Promise<Ca
   const supabase = await createClient();
   const { data: categories } = await supabase.from("categories").select("slug").order("name");
   const explorers = await Promise.all((categories ?? []).map((category) => getCategoryExplorer(category.slug, destinationSlug)));
-  return explorers.filter((category): category is CategoryExplorer => Boolean(category));
+  return explorers
+    .filter((category): category is CategoryExplorer => Boolean(category))
+    // A destination browser should only advertise categories that have
+    // locations in that destination. The generic browser still shows every
+    // category across the catalogue.
+    .filter((category) => !destinationSlug || category.placeCount > 0);
 }
 
 export async function findCategoryFromSearch(query: string) {

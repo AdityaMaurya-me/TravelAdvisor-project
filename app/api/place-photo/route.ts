@@ -90,6 +90,44 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Wikimedia's broad file search can return a technically matching but
+  // unrelated image (for example an animal photographed in a destination).
+  // Prefer the place-specific Google result, then Unsplash's contextual
+  // search. Wikimedia remains the last fallback when those providers have no
+  // usable image.
+  const unsplashAccessKey = process.env.UNSPLASH_ACCESS_KEY;
+  if (unsplashAccessKey) {
+    const parameters = new URLSearchParams({
+      query: `${query} travel`,
+      orientation: "landscape",
+      content_filter: "high",
+      per_page: "1",
+    });
+
+    try {
+      const response = await fetch(`https://api.unsplash.com/search/photos?${parameters}`, {
+        headers: {
+          Authorization: `Client-ID ${unsplashAccessKey}`,
+          "Accept-Version": "v1",
+        },
+        next: { revalidate: ONE_MONTH },
+      });
+      if (response.ok) {
+        const body = await response.json() as { results?: UnsplashPhoto[] };
+        const photo = body.results?.[0];
+        if (photo?.urls?.regular) return NextResponse.json({
+          photo: { url: photo.urls.regular, photographer: photo.user?.name ?? "Unsplash contributor", source: "Unsplash" },
+        }, { headers: { "Cache-Control": `public, s-maxage=${ONE_WEEK}, stale-while-revalidate=${ONE_MONTH}` } });
+      }
+    } catch {
+      // A clear no-photo state is safer than a broadly matched, unrelated file.
+    }
+    // Wikimedia's broad file search can return a geographically related but
+    // visually unrelated file. If Unsplash is configured but has no relevant
+    // result, let the UI show its explicit verification state instead.
+    return NextResponse.json({ photo: null });
+  }
+
   try {
     const parameters = new URLSearchParams({
       action: "query",
@@ -123,36 +161,5 @@ export async function GET(request: NextRequest) {
     // Continue to the generic travel-photo fallback below.
   }
 
-  const unsplashAccessKey = process.env.UNSPLASH_ACCESS_KEY;
-  if (!unsplashAccessKey) return NextResponse.json({ photo: null });
-
-  const parameters = new URLSearchParams({
-    query,
-    orientation: "landscape",
-    content_filter: "high",
-    per_page: "1",
-  });
-
-  try {
-    const response = await fetch(`https://api.unsplash.com/search/photos?${parameters}`, {
-      headers: {
-        Authorization: `Client-ID ${unsplashAccessKey}`,
-        "Accept-Version": "v1",
-      },
-      next: { revalidate: ONE_MONTH },
-    });
-    if (!response.ok) return NextResponse.json({ photo: null });
-    const body = await response.json() as { results?: UnsplashPhoto[] };
-    const photo = body.results?.[0];
-    if (!photo?.urls?.regular) return NextResponse.json({ photo: null });
-    return NextResponse.json({
-      photo: {
-        url: photo.urls.regular,
-        photographer: photo.user?.name ?? "Unsplash contributor",
-        source: "Unsplash",
-      },
-    }, { headers: { "Cache-Control": `public, s-maxage=${ONE_WEEK}, stale-while-revalidate=${ONE_MONTH}` } });
-  } catch {
-    return NextResponse.json({ photo: null });
-  }
+  return NextResponse.json({ photo: null });
 }
