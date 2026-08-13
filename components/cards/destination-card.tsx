@@ -54,11 +54,11 @@ export function DestinationCard({
         </div>
 
         {destination.rating !== null && destination.reviewCount !== null ? (
-          <div className="flex items-center gap-2 text-sm" aria-label={`Google Maps rating ${destination.rating.toFixed(1)} from ${destination.reviewCount.toLocaleString()} ratings`}>
+          <div className="flex items-center gap-2 text-sm" aria-label={`TravelAdvisor demo rating ${destination.rating.toFixed(1)} from ${destination.reviewCount.toLocaleString()} demo ratings`}>
             <div className="flex items-center gap-1"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /><span className="font-medium">{destination.rating.toFixed(1)}</span></div>
-            <span className="text-muted-foreground">({destination.reviewCount.toLocaleString()} Google ratings)</span>
+            <span className="text-muted-foreground">({destination.reviewCount.toLocaleString()} demo ratings)</span>
           </div>
-        ) : <p className="text-xs text-muted-foreground">Google rating pending verification</p>}
+        ) : <p className="text-xs text-muted-foreground">Rating pending</p>}
       </div>
     </article>
   );

@@ -20,7 +20,7 @@ export function DestinationHero({
 }: DestinationHeroProps) {
   return (
     <section className="relative isolate overflow-hidden border-b border-border/60">
-      <div className="absolute inset-0 -z-20"><PlacePhoto src={destination.image} alt={destination.title} query={`${destination.title} ${destination.location}`} googlePhotoName={destination.googlePhotoName} googlePhotoAuthor={destination.googlePhotoAuthor} sizes="100vw" className="object-cover" /></div>
+      <div className="absolute inset-0 -z-20"><PlacePhoto src={destination.image} alt={destination.title} query={`${destination.title} ${destination.location}`} googlePhotoName={destination.googlePhotoName} googlePhotoAuthor={destination.googlePhotoAuthor} sizes="100vw" quality={90} className="object-cover" /></div>
       <div className="absolute inset-0 -z-10 bg-linear-to-r from-background via-background/85 to-background/45" />
 
       <PageContainer className="max-w-360 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-10">
@@ -46,8 +46,8 @@ export function DestinationHero({
               {destination.location}
             </span>
             {destination.rating !== null && destination.reviewCount !== null ? (
-              <span className="inline-flex items-center gap-1.5 text-foreground"><Star aria-hidden="true" className="h-4 w-4 fill-amber-400 text-amber-400" />{destination.rating.toFixed(1)} ({destination.reviewCount.toLocaleString()} Google ratings)</span>
-            ) : <span className="text-xs">Google rating pending verification</span>}
+              <span className="inline-flex items-center gap-1.5 text-foreground"><Star aria-hidden="true" className="h-4 w-4 fill-amber-400 text-amber-400" />{destination.rating.toFixed(1)} ({destination.reviewCount.toLocaleString()} demo ratings)</span>
+            ) : <span className="text-xs">Rating pending</span>}
           </div>
           <p className="mt-6 max-w-xl text-sm leading-6 text-foreground/85 sm:text-base">
             {destination.description}

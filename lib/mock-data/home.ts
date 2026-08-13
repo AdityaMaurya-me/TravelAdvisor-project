@@ -11,13 +11,13 @@ export interface Category {
  * category itself, rather than changing with a specific place record.
  */
 export const CATEGORY_CARD_IMAGES: Record<string, string> = {
-  waterfalls: "https://images.unsplash.com/photo-1633037499870-d105eb8b1daf?auto=format&fit=crop&w=1080&q=80",
-  forts: "https://images.unsplash.com/photo-1717329162563-2f93e83cc717?auto=format&fit=crop&w=1080&q=80",
-  cafes: "https://images.unsplash.com/photo-1600765728673-7b4aa76cc3ce?auto=format&fit=crop&w=1080&q=80",
-  viewpoints: "https://images.unsplash.com/photo-1638103243329-5c8be2dedad0?auto=format&fit=crop&w=1080&q=80",
-  "local-food": "https://images.unsplash.com/photo-1617692855027-33b14f061079?auto=format&fit=crop&w=1080&q=80",
-  temples: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1080&q=80",
-  "road-trips": "https://images.unsplash.com/photo-1626002547082-f12bc6b7a72b?auto=format&fit=crop&w=1080&q=80",
+  waterfalls: "https://images.unsplash.com/photo-1637354895470-f36402ad275d?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  forts: "https://images.unsplash.com/photo-1643269877099-ea5393b80320?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  cafes: "https://images.unsplash.com/photo-1542372147193-a7aca54189cd?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  viewpoints: "https://images.unsplash.com/photo-1695211564991-9cf8f7a1d799?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGZvcnRzfGVufDB8fDB8fHww",
+  "local-food": "https://images.unsplash.com/photo-1589302168068-964664d93dc0?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  temples: "https://images.unsplash.com/photo-1665003725647-3ae0f01140b1?q=80&w=736&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "road-trips": "https://images.unsplash.com/photo-1669437923990-0160340d4d06?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   camping: "https://images.unsplash.com/photo-1618772446265-3f9f8e6f8487?auto=format&fit=crop&w=1080&q=80",
   attractions: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?auto=format&fit=crop&w=1080&q=80",
   "hidden-gems": "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1080&q=80",

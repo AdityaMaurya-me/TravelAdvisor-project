@@ -49,7 +49,22 @@ const starters = [
   "Which waterfalls can I explore near Pune?",
   "Suggest a budget-friendly Goa itinerary",
   "What can I do in Mumbai in one day?",
+  "Find cafés and local food in Goa",
+  "Plan a scenic Mumbai to Lonavala drive",
+  "What are the best family-friendly places in Manali?",
+  "Suggest a one-day heritage itinerary for Jaipur",
+  "Which places are good for a monsoon trip?",
+  "Help me plan a low-budget weekend trip from Pune",
+  "Find quiet nature spots around Mumbai",
+  "What should I pack for a hill-station trip?",
 ];
+
+const STARTER_COUNT = 4;
+
+function promptsForNewChat(seed: number) {
+  const start = Math.abs(seed) % starters.length;
+  return Array.from({ length: STARTER_COUNT }, (_, index) => starters[(start + index * 3) % starters.length]);
+}
 
 export function TravelAssistant() {
   const { requireAuth } = useAuthModal();
@@ -63,6 +78,7 @@ export function TravelAssistant() {
   const [renameTitle, setRenameTitle] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
   const [isManaging, setIsManaging] = useState(false);
+  const [chatPrompts, setChatPrompts] = useState<Record<string, string[]>>({});
 
   const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
   const messages = active?.ai_messages ?? [];
@@ -108,6 +124,10 @@ export function TravelAssistant() {
 
     setConversations((current) => [result.conversation!, ...current]);
     setActiveId(result.conversation.id);
+    setChatPrompts((current) => ({
+      ...current,
+      [result.conversation!.id]: promptsForNewChat(Date.now() + conversations.length),
+    }));
     setError(null);
     return result.conversation;
   };
@@ -324,9 +344,9 @@ export function TravelAssistant() {
         </div>
 
         <div className="min-h-100 space-y-4 p-5">
-          {!active ? (
+          {(!active || messages.length === 0) ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {starters.map((starter) => (
+              {(active ? chatPrompts[active.id] ?? promptsForNewChat(active.id.length) : promptsForNewChat(0)).map((starter) => (
                 <button
                   key={starter}
                   type="button"

@@ -28,6 +28,13 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // Keep browser and pinch zoom available. Restricting it would harm
+  // accessibility and does not reliably control desktop browser zoom.
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
   colorScheme: 'light dark',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },

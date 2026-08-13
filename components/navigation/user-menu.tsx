@@ -39,14 +39,19 @@ export function UserMenu() {
       const user = session?.user;
       setEmail(user?.email ?? null);
       if (!user) { clearCachedProfile(); setName("Traveller"); setAvatar(""); setIsAdmin(false); return; }
-      const { data: profile } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle();
+      const { data: profile, error: profileError } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle();
       const { data: role } = await supabase.from("curator_roles").select("role").eq("user_id", user.id).maybeSingle();
+      const cachedForUser = readCachedProfile();
+      const sameUserCache = cachedForUser?.userId === user.id ? cachedForUser : null;
+      // A profile request can briefly fail during a route transition. Keep the
+      // already-persisted avatar instead of replacing it with an empty circle.
+      const persistedAvatar = profileError ? sameUserCache?.avatar ?? "" : profile?.avatar_url || "";
       const nextProfile = {
         userId: user.id,
         email: user.email ?? "",
         name: profile?.display_name || user.email?.split("@")[0] || "Traveller",
-        avatar: profile?.avatar_url || "",
-        isAdmin: role?.role === "admin",
+        avatar: persistedAvatar,
+        isAdmin: role?.role === "admin" || sameUserCache?.isAdmin === true,
       };
       setIsAdmin(nextProfile.isAdmin);
       setName(nextProfile.name);
@@ -61,13 +66,16 @@ export function UserMenu() {
         if (typeof detail.name === "string") setName(detail.name || "Traveller");
         if (typeof detail.avatar === "string") setAvatar(detail.avatar);
         const cached = readCachedProfile();
-        if (cached) writeCachedProfile({
+        if (cached && !detail.avatar?.startsWith("blob:")) writeCachedProfile({
           ...cached,
           name: typeof detail.name === "string" ? detail.name || "Traveller" : cached.name,
           avatar: typeof detail.avatar === "string" ? detail.avatar : cached.avatar,
         });
       }
-      void load();
+      // A persisted remote URL has just been broadcast by the profile page.
+      // Reload it from Supabase only in that case; doing so for a temporary
+      // local preview caused the navbar to race and display a different photo.
+      if (!detail?.avatar?.startsWith("blob:")) void load();
     };
     window.addEventListener("traveladvisor:profile-updated", syncProfile);
     return () => { subscription.unsubscribe(); window.removeEventListener("traveladvisor:profile-updated", syncProfile); };

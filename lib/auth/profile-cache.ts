@@ -20,6 +20,9 @@ export function readCachedProfile(): CachedProfile | null {
 }
 
 export function writeCachedProfile(profile: CachedProfile) {
+  // Object URLs are only valid for the current document. Never preserve one
+  // as the account avatar or it will break after navigation/reload.
+  if (profile.avatar.startsWith("blob:")) return;
   try { sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile)); } catch { /* storage is optional */ }
 }
 

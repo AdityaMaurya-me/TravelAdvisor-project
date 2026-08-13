@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { getGooglePlaceById } from "@/lib/google-places";
 
 export interface CategoryExplorerPlace {
   id: string;
@@ -8,11 +7,12 @@ export interface CategoryExplorerPlace {
   location: string;
   description: string;
   image: string;
-  rating: number;
-  reviewCount: number;
+  rating: number | null;
+  reviewCount: number | null;
   distance: string;
   googlePhotoName?: string;
   googlePhotoAuthor?: string;
+  googleRatingCheckedAt?: string;
 }
 
 export interface CategoryExplorer {
@@ -45,6 +45,12 @@ const defaultCopy = (title: string) => ({
   description: "Discover memorable places for your next journey.",
 });
 
+function numericOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 function toExplorerPlace(place: any): CategoryExplorerPlace {
   return {
     id: place.slug,
@@ -53,8 +59,8 @@ function toExplorerPlace(place: any): CategoryExplorerPlace {
     location: [place.city, place.state].filter(Boolean).join(", ") || place.address || "Maharashtra",
     description: place.description ?? "More details coming soon.",
     image: place.cover_image || "/placeholder.jpg",
-    rating: Number(place.rating ?? 0),
-    reviewCount: Number(place.review_count ?? 0),
+    rating: numericOrNull(place.rating),
+    reviewCount: numericOrNull(place.review_count),
     distance: "Explore nearby",
     googlePhotoName: place.googlePhotoName,
     googlePhotoAuthor: place.googlePhotoAuthor,
@@ -84,16 +90,13 @@ export async function getCategoryExplorer(slug: string, destinationSlug?: string
 
   const { data: mappings } = await supabase
     .from("place_categories")
-    .select("places(slug, name, city, state, address, description, cover_image, rating, review_count, is_published, is_external, parent_id, google_place_id)")
+    .select("places(slug, name, city, state, address, description, cover_image, rating, review_count, google_rating, google_rating_count, google_rating_checked_at, is_published, is_external, parent_id, google_place_id)")
     .eq("category_id", category.id);
 
   const rawPlaces = (mappings ?? [])
     .map((mapping: any) => mapping.places)
     .filter((place: any) => place?.is_published && !place?.is_external && (!destination || place.parent_id === destination.id));
-  const places = (await Promise.all(rawPlaces.map(async (place: any) => {
-    const googlePlace = typeof place.google_place_id === "string" ? await getGooglePlaceById(place.google_place_id) : null;
-    return toExplorerPlace({ ...place, googlePhotoName: googlePlace?.photo?.name, googlePhotoAuthor: googlePlace?.photo?.authorName });
-  })))
+  const places = rawPlaces.map(toExplorerPlace)
     .sort((first, second) => first.title.localeCompare(second.title));
   const copy = CATEGORY_COPY[category.slug] ?? defaultCopy(category.name);
 

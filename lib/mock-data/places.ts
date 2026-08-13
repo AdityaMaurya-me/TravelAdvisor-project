@@ -1,7 +1,6 @@
 import type { PlacePreview } from "@/lib/mock-data/destinations";
 import { createClient } from "@/lib/supabase/server";
 import { getPlaceMapMarker, type DetailMapMarker } from "@/lib/data/detail-maps";
-import { getGooglePlaceById } from "@/lib/google-places";
 
 export type PlaceFactIcon = "sunrise" | "ticket" | "clock" | "timer" | "camera";
 
@@ -24,7 +23,7 @@ export interface PlaceDetail {
   images: string[];
   googlePhotoName?: string;
   googlePhotoAuthor?: string;
-  /** Aggregate live rating from Google Maps; never mixed with TravelAdvisor reviews. */
+  /** Demo catalogue rating. Replace with computed community reviews at launch. */
   googleRating?: number;
   googleRatingCount?: number;
   facts: PlaceFact[];
@@ -156,18 +155,14 @@ export async function getPlaceBySlug(
     : [];
 
   const mapMarker = await getPlaceMapMarker(place.id);
-  // A previously saved live listing can be canonically linked to this
-  // verified card. Keep that relationship intact (it may own saved items or
-  // discussions) while using its Google Place ID to show current aggregate
-  // Google Maps facts on the canonical page.
+  // A canonical Google ID remains useful as an outbound Maps hand-off, but
+  // curated cards do not call paid Google Place Details while rendering.
   const directGooglePlaceId = typeof (place as any).google_place_id === "string" ? (place as any).google_place_id : null;
   const { data: canonicalLiveRecord } = directGooglePlaceId
     ? { data: null }
     : await (supabase as any).from("places").select("google_place_id").eq("canonical_place_id", place.id).eq("is_external", true).not("google_place_id", "is", null).limit(1).maybeSingle();
   const googlePlaceId = directGooglePlaceId ?? canonicalLiveRecord?.google_place_id ?? null;
-  const googlePlace = googlePlaceId ? await getGooglePlaceById(googlePlaceId) : null;
   const googleMapsUrl = getGoogleMapsUrl({
-    googleMapsUri: googlePlace?.googleMapsUri,
     googlePlaceId,
     marker: mapMarker,
     name: place.name,
@@ -192,10 +187,8 @@ export async function getPlaceBySlug(
     description: place.description ?? "",
     coverImage,
     images: displayImages,
-    googlePhotoName: googlePlace?.photo?.name,
-    googlePhotoAuthor: googlePlace?.photo?.authorName,
-    googleRating: googlePlace?.rating,
-    googleRatingCount: googlePlace?.userRatingCount,
+    googleRating: typeof place.rating === "number" && Number.isFinite(place.rating) ? place.rating : undefined,
+    googleRatingCount: typeof place.review_count === "number" && Number.isFinite(place.review_count) ? place.review_count : undefined,
     facts,
     verifiedInfo: { openingHours: (place as any).opening_hours ?? undefined, entryFee: (place as any).entry_fee ?? undefined, websiteUrl: (place as any).website_url ?? undefined, phone: (place as any).phone ?? undefined, googleMapsUrl, sourceUrl: (place as any).source_url ?? undefined, sourceReference: (place as any).source_reference ?? undefined, lastVerifiedAt: (place as any).last_verified_at ?? undefined, hasParking: (place as any).has_parking, hasWashroom: (place as any).has_washroom, isPetFriendly: (place as any).is_pet_friendly, hasEvCharging: (place as any).has_ev_charging, typicalVisitMinutes: (place as any).typical_visit_minutes },
     nearbyPlaces,

@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDestinationMapMarkers, type DetailMapMarker } from "@/lib/data/detail-maps";
-import { getGooglePlaceById } from "@/lib/google-places";
 
 export type DestinationFactIcon =
   | "route"
@@ -95,6 +94,12 @@ const CATEGORY_ICON_MAP: Record<string, DestinationCategoryIcon> = {
   "photo-spots": "camera",
 };
 
+function numericOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 /**
  * Replaces the old static DESTINATION_SUMMARIES array.
  * Powers homepage "Trending Destinations" and any destination-picker list.
@@ -103,7 +108,7 @@ export async function getDestinationSummaries(): Promise<DestinationSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("places")
-    .select("id,slug,name,city,state,country,cover_image,google_place_id")
+    .select("id,slug,name,city,state,country,cover_image,rating,review_count")
     .eq("level", "city")
     .eq("is_published", true)
     .eq("is_external", false)
@@ -112,17 +117,14 @@ export async function getDestinationSummaries(): Promise<DestinationSummary[]> {
   if (error || !data) return [];
 
   return Promise.all(data.map(async (row) => {
-    const googlePlace = typeof row.google_place_id === "string" ? await getGooglePlaceById(row.google_place_id) : null;
     return {
       id: row.slug ?? "",
       title: row.name ?? "Untitled destination",
       location: [row.city, row.state, row.country].filter(Boolean).join(", "),
       image: row.cover_image ?? "/placeholder.jpg",
-      rating: googlePlace?.rating ?? null,
-      reviewCount: googlePlace?.userRatingCount ?? null,
+      rating: numericOrNull(row.rating),
+      reviewCount: numericOrNull(row.review_count),
       href: `/destination/${row.slug ?? ""}`,
-      googlePhotoName: googlePlace?.photo?.name,
-      googlePhotoAuthor: googlePlace?.photo?.authorName,
     };
   }));
 }
@@ -143,7 +145,6 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     .single();
 
   if (placeError || !place) return null;
-  const googlePlace = typeof place.google_place_id === "string" ? await getGooglePlaceById(place.google_place_id) : null;
 
   // 2. Category counts scoped to this destination's attractions
   const { data: taggedPlaces } = await supabase
@@ -181,27 +182,24 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
   // 3. Places that belong to this destination (children in the hierarchy)
   const { data: children } = await supabase
     .from("places")
-    .select("slug, name, cover_image, google_place_id")
+    .select("slug, name, cover_image")
     .eq("parent_id", place.id)
     .eq("level", "attraction")
     .eq("is_published", true)
     .eq("is_external", false)
     .order("name");
 
-  const toPreview = async (row: any): Promise<PlacePreview> => {
-    const googlePlace = typeof row.google_place_id === "string" ? await getGooglePlaceById(row.google_place_id) : null;
+  const toPreview = (row: any): PlacePreview => {
     return {
     id: row.slug,
     title: row.name,
     location: place.name,
     image: row.cover_image || "/placeholder.jpg",
     href: `/place/${row.slug}`,
-    googlePhotoName: googlePlace?.photo?.name,
-    googlePhotoAuthor: googlePlace?.photo?.authorName,
   };
   };
 
-  const allChildren = await Promise.all((children ?? []).map(toPreview));
+  const allChildren = (children ?? []).map(toPreview);
   const [{ data: route }, mapPlaces] = await Promise.all([
     supabase
     .from("routes")
@@ -218,8 +216,8 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     location: [place.city, place.state].filter(Boolean).join(", "),
     description: place.description ?? "",
     image: place.cover_image ?? "/placeholder.jpg",
-    rating: googlePlace?.rating ?? null,
-    reviewCount: googlePlace?.userRatingCount ?? null,
+    rating: numericOrNull(place.rating),
+    reviewCount: numericOrNull(place.review_count),
     facts: [
       { label: "Distance", value: "Plan your route", detail: "From your location", icon: "route" },
       { label: "Best season", value: "Seasonal", detail: "Explore monthly highlights", icon: "calendar" },
@@ -233,8 +231,6 @@ export async function getDestinationBySlug(slug: string): Promise<DestinationDet
     communityFavorites: allChildren.slice(0, 4),
     mapPlaces,
     routeHref: route ? `/route/${route.slug}` : undefined,
-    googlePhotoName: googlePlace?.photo?.name,
-    googlePhotoAuthor: googlePlace?.photo?.authorName,
   };
 }
 

@@ -41,6 +41,15 @@ function needsPhotoLookup(source: string) {
   return !source.trim() || PLACEHOLDER_IMAGE.test(source);
 }
 
+function isSupabaseStoragePhoto(source: string) {
+  try {
+    const url = new URL(source);
+    return url.hostname.endsWith(".supabase.co") && url.pathname.includes("/storage/v1/object/");
+  } catch {
+    return false;
+  }
+}
+
 interface PlacePhotoProps {
   src: string;
   alt: string;
@@ -49,6 +58,8 @@ interface PlacePhotoProps {
   googlePhotoAuthor?: string;
   className?: string;
   sizes?: string;
+  /** Must be one of the image qualities allowed in next.config.mjs. */
+  quality?: number;
   /** Live, uncurated listings may use a query fallback. Curated cards never do. */
   allowFallbackSearch?: boolean;
   /** Optional editorial override; otherwise the crop is inferred from the subject query. */
@@ -67,7 +78,7 @@ function inferFocalPoint(query: string) {
  * the catalogue has no chosen cover, the exact Google Place photo is loaded
  * on demand with its attribution instead of showing a generic placeholder.
  */
-export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhotoAuthor, className, sizes, focalPoint, allowFallbackSearch = false }: PlacePhotoProps) {
+export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhotoAuthor, className, sizes, quality = 75, focalPoint, allowFallbackSearch = false }: PlacePhotoProps) {
   const [photo, setPhoto] = useState<PhotoResult["photo"]>(() => readCachedPhoto(query, alt));
   const [googlePhotoFailed, setGooglePhotoFailed] = useState(false);
   const requiresLookup = needsPhotoLookup(src);
@@ -80,6 +91,10 @@ export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhoto
     : null;
   const resolvedPhoto = requiresLookup ? photo ?? directGooglePhoto : null;
   const showSemanticFallback = requiresLookup && !resolvedPhoto;
+  // Moderator uploads already come from a trusted public Storage URL. Direct
+  // delivery avoids a second optimizer request failing on a newly added file,
+  // while retaining the original uploaded resolution.
+  const displayedSource = resolvedPhoto?.url ?? src;
 
   useEffect(() => {
     if (!requiresLookup || !query.trim()) {
@@ -127,13 +142,14 @@ export function PlacePhoto({ src, alt, query = alt, googlePhotoName, googlePhoto
         </div>
       ) : (
         <Image
-          src={resolvedPhoto?.url ?? src}
+          src={displayedSource}
           alt={alt}
           fill
           sizes={sizes}
+          quality={quality}
           className={className}
           style={{ objectPosition: focalPoint ?? inferFocalPoint(query) }}
-          unoptimized={Boolean(resolvedPhoto)}
+          unoptimized={Boolean(resolvedPhoto) || isSupabaseStoragePhoto(displayedSource)}
           onError={() => {
             if (googlePhotoName && !googlePhotoFailed) {
               setPhoto(null);

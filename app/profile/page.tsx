@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import Navbar from "@/components/layout/navbar";
 import { supabase } from "@/lib/supabase";
 import { AppModal } from "@/components/ui/app-modal";
+import { readCachedProfile, writeCachedProfile } from "@/lib/auth/profile-cache";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -32,13 +33,18 @@ export default function ProfilePage() {
 
       setId(user.id);
       setEmail(user.email ?? "");
-      const { data } = await supabase
+      const { data, error: profileError } = await supabase
         .from("profiles")
         .select("display_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
-      setName(data?.display_name || user.email?.split("@")[0] || "Traveller");
-      setAvatar(data?.avatar_url || "");
+      const cached = readCachedProfile();
+      const sameUserCache = cached?.userId === user.id ? cached : null;
+      const nextName = data?.display_name || sameUserCache?.name || user.email?.split("@")[0] || "Traveller";
+      const nextAvatar = profileError ? sameUserCache?.avatar || "" : data?.avatar_url || "";
+      setName(nextName);
+      setAvatar(nextAvatar);
+      writeCachedProfile({ userId: user.id, email: user.email ?? "", name: nextName, avatar: nextAvatar, isAdmin: sameUserCache?.isAdmin ?? false });
     })();
   }, [requireAuth]);
 

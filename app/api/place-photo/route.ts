@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGooglePlaceById, searchGooglePlaces } from "@/lib/google-places";
 
 type UnsplashPhoto = {
-  urls?: { regular?: string };
+  urls?: { regular?: string; full?: string };
   user?: { name?: string };
 };
 
@@ -32,7 +32,10 @@ function validPhotoName(name: string) {
 async function redirectToGooglePhoto(photoName: string, apiKey: string) {
   const parameters = new URLSearchParams({
     key: apiKey,
-    maxWidthPx: "1400",
+    // 1920px preserves detail for desktop heroes and 2x-density displays.
+    // The browser only downloads it for a live photo; curated images still go
+    // through Next's responsive optimizer.
+    maxWidthPx: "1920",
     skipHttpRedirect: "true",
   });
   const response = await fetch(`https://places.googleapis.com/v1/${photoName}/media?${parameters}`, {
@@ -115,9 +118,23 @@ export async function GET(request: NextRequest) {
       if (response.ok) {
         const body = await response.json() as { results?: UnsplashPhoto[] };
         const photo = body.results?.[0];
-        if (photo?.urls?.regular) return NextResponse.json({
-          photo: { url: photo.urls.regular, photographer: photo.user?.name ?? "Unsplash contributor", source: "Unsplash" },
-        }, { headers: { "Cache-Control": `public, s-maxage=${ONE_WEEK}, stale-while-revalidate=${ONE_MONTH}` } });
+        const photoUrl = photo?.urls?.full ?? photo?.urls?.regular;
+        if (photoUrl) {
+          // Request an appropriately detailed original from Unsplash instead
+          // of making a high-density hero download the full camera file.
+          const optimizedPhotoUrl = new URL(photoUrl);
+          optimizedPhotoUrl.searchParams.set("auto", "format");
+          optimizedPhotoUrl.searchParams.set("fit", "crop");
+          optimizedPhotoUrl.searchParams.set("w", "1920");
+          optimizedPhotoUrl.searchParams.set("q", "85");
+          return NextResponse.json({
+            photo: {
+              url: optimizedPhotoUrl.toString(),
+              photographer: photo?.user?.name ?? "Unsplash contributor",
+              source: "Unsplash",
+            },
+          }, { headers: { "Cache-Control": `public, s-maxage=${ONE_WEEK}, stale-while-revalidate=${ONE_MONTH}` } });
+        }
       }
     } catch {
       // A clear no-photo state is safer than a broadly matched, unrelated file.

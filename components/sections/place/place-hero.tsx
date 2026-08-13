@@ -52,6 +52,7 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
             googlePhotoName={place.googlePhotoName}
             googlePhotoAuthor={place.googlePhotoAuthor}
             sizes="(min-width: 1024px) 66vw, 100vw"
+            quality={90}
             className="object-cover"
           /> : <div className="grid h-full place-items-center p-6 text-center text-sm text-muted-foreground">A photo for this place has not been added yet.</div>}
         </div>
@@ -77,6 +78,7 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
                   googlePhotoName={place.googlePhotoName}
                   googlePhotoAuthor={place.googlePhotoAuthor}
                   sizes="120px"
+                  quality={75}
                   className="object-cover transition-transform duration-300 group-hover:scale-110"
                 />
                 {showOverlay && (
@@ -101,7 +103,7 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
               <Star className="h-4 w-4 fill-current" />
               {place.googleRating.toFixed(1)}
               {place.googleRatingCount ? ` (${place.googleRatingCount.toLocaleString()})` : ""}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">Google Maps rating</span>
+              <span className="ml-1 text-xs font-normal text-muted-foreground">TravelAdvisor demo rating</span>
             </span>
           )}
         </div>

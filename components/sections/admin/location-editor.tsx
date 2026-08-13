@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ExternalLink, ImagePlus, MapPinned } from "lucide-react";
+import { ExternalLink, ImagePlus, MapPinned, Star, Trash2 } from "lucide-react";
 import Navbar from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +23,7 @@ const times = Array.from(
 );
 type Hours = Record<string, { closed: boolean; open: string; close: string }>;
 type GalleryImage = { id: string; url: string; alt_text: string | null; sort_order: number | null };
+const MAX_GALLERY_IMAGES = 12;
 const emptyHours = (): Hours =>
   Object.fromEntries(
     days.map((day) => [day, { closed: false, open: "09:00", close: "18:00" }]),
@@ -118,6 +119,9 @@ export function LocationEditor() {
     const selected = Array.from(files ?? []);
     if (!selected.length) return;
     if (!form.id || !form.name) { setMessage("Wait for the location details to load before uploading images."); return; }
+    const availableSlots = MAX_GALLERY_IMAGES - gallery.length;
+    if (availableSlots <= 0) { setMessage(`A location can have up to ${MAX_GALLERY_IMAGES} gallery photos. Remove one before uploading another.`); return; }
+    if (selected.length > availableSlots) { setMessage(`You can add ${availableSlots} more photo${availableSlots === 1 ? "" : "s"} to this location gallery.`); return; }
     const invalid = selected.find((file) => !file.type.match(/^image\/(png|jpeg|webp)$/) || file.size > 5 * 1024 * 1024);
     if (invalid) { setMessage("Every image must be PNG, JPEG, or WebP and under 5 MB."); return; }
 
@@ -143,8 +147,12 @@ export function LocationEditor() {
         uploads.push(galleryRow as GalleryImage);
       }
       setGallery((current) => [...current, ...uploads]);
-      if (!form.cover_image) setForm((current) => ({ ...current, cover_image: uploads[0].url }));
-      setMessage(`${uploads.length} display photo${uploads.length === 1 ? "" : "s"} added. Choose one as the fixed card and banner cover.`);
+      if (!form.cover_image) {
+        setForm((current) => ({ ...current, cover_image: uploads[0].url }));
+        setMessage(`${uploads.length} gallery photo${uploads.length === 1 ? "" : "s"} added. The first is now the cover—choose a different one below if needed, then save.`);
+      } else {
+        setMessage(`${uploads.length} gallery photo${uploads.length === 1 ? "" : "s"} added. Choose one as the fixed card and banner cover, then save.`);
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "We could not upload those photos.");
     } finally {
@@ -255,7 +263,7 @@ export function LocationEditor() {
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
                 <p className="text-sm font-medium">Fixed cover image</p>
-                <p className="mt-1 text-xs text-muted-foreground">This one image is used on every location card and the destination/banner view.</p>
+                <p className="mt-1 text-xs text-muted-foreground">This fixed image is used on location cards and destination banners. Gallery photos remain visible inside the location page.</p>
               </div>
               {form.cover_image && <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-300">Current cover</span>}
             </div>
@@ -296,23 +304,23 @@ export function LocationEditor() {
               className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-cyan-400/40 px-3 py-2 text-sm text-cyan-400"
             >
               <ImagePlus className="h-4 w-4" />
-              {uploading ? "Uploading…" : "Upload new image"}
+              {uploading ? "Uploading…" : "Add gallery photos"}
             </label>
-            <p className="mt-2 text-xs text-muted-foreground">You can select several PNG, JPEG, or WebP files at once (up to 5 MB each).</p>
+            <p className="mt-2 text-xs text-muted-foreground">Select multiple PNG, JPEG, or WebP files at once (up to 5 MB each; {MAX_GALLERY_IMAGES} photos per location). Select a gallery photo below as the single fixed cover.</p>
             <div className="mt-5">
-              <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">Location gallery</p><span className="text-xs text-muted-foreground">{gallery.length} uploaded</span></div>
+              <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium">Location gallery</p><p className="mt-1 text-xs text-muted-foreground">Visitors can switch between these photos on the location page.</p></div><span className="text-xs text-muted-foreground">{gallery.length} / {MAX_GALLERY_IMAGES}</span></div>
               {gallery.length ? <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {gallery.map((image) => {
                   const isCover = image.url === form.cover_image;
                   return <article key={image.id} className={`overflow-hidden rounded-xl border bg-background ${isCover ? "border-cyan-400 ring-1 ring-cyan-400/40" : "border-border"}`}>
                     <img src={image.url} alt={image.alt_text || `${form.name || "Location"} display photo`} className="aspect-square w-full object-cover" />
                     <div className="flex items-center justify-between gap-2 p-2">
-                      <button type="button" onClick={() => setCover(image.url)} disabled={isCover} className="min-w-0 truncate text-xs font-medium text-cyan-300 disabled:text-muted-foreground">{isCover ? "Fixed cover" : "Set as cover"}</button>
-                      <button type="button" onClick={() => void removeGalleryImage(image)} disabled={isCover} className="text-xs text-red-300 disabled:cursor-not-allowed disabled:text-muted-foreground">Remove</button>
+                      <button type="button" onClick={() => setCover(image.url)} disabled={isCover} className="inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium text-cyan-300 disabled:text-muted-foreground"><Star className="h-3.5 w-3.5" />{isCover ? "Fixed cover" : "Make cover"}</button>
+                      <button type="button" onClick={() => void removeGalleryImage(image)} disabled={isCover} aria-label="Remove gallery photo" title={isCover ? "Choose another cover before removing this photo" : "Remove photo"} className="text-red-300 disabled:cursor-not-allowed disabled:text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </article>;
                 })}
-              </div> : <p className="mt-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Add gallery images to give visitors more views of this location.</p>}
+              </div> : <p className="mt-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">No gallery photos yet. Add one or more photos, then select the single card/banner cover.</p>}
             </div>
           </div>
           <section className="grid gap-4 sm:grid-cols-2">

@@ -16,8 +16,8 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
 
   const visiblePlaces = useMemo(() => {
     const places = [...category.places];
-    if (filter === "rating") return places.filter((place) => place.rating >= 4.5).sort((a, b) => b.rating - a.rating);
-    if (filter === "reviews") return places.sort((a, b) => b.reviewCount - a.reviewCount);
+    if (filter === "rating") return places.filter((place) => (place.rating ?? -1) >= 4.5).sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    if (filter === "reviews") return places.sort((a, b) => (b.reviewCount ?? -1) - (a.reviewCount ?? -1));
     return places;
   }, [category.places, filter]);
 
@@ -76,7 +76,7 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
                     </div>
                     <p className="mt-2 line-clamp-2 text-sm text-slate-300">{place.description}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-                      <span className="flex items-center gap-1 text-amber-300"><Star className="h-3.5 w-3.5 fill-current" />{place.rating}</span>
+                      {place.rating !== null ? <span className="flex items-center gap-1 text-amber-300"><Star className="h-3.5 w-3.5 fill-current" />{place.rating.toFixed(1)}</span> : <span className="text-muted-foreground">Rating pending</span>}
                       <span>{place.reviewCount} reviews</span><span>·</span><span>{place.distance}</span>
                     </div>
                   </div>
@@ -87,7 +87,7 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
             ))}
           </section>
 
-          <aside className="relative min-h-100 overflow-hidden rounded-2xl border border-border bg-card lg:sticky lg:top-24 lg:h-[520px]">
+          <aside className="relative min-h-100 overflow-hidden rounded-2xl border border-border bg-card lg:top-24 lg:h-[520px] lg:sticky">
             <Image src="/hero-bg.jpg" alt={`Map preview of ${category.destination?.title ?? "published destinations"}`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover opacity-35 saturate-50" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_42%,rgba(6,182,212,.25),transparent_28%),linear-gradient(135deg,rgba(5,20,35,.55),rgba(10,40,56,.85))]" />
             <div className="absolute left-5 top-5 flex items-center gap-2 rounded-lg bg-slate-950/75 px-3 py-2 text-sm font-medium backdrop-blur"><Search className="h-4 w-4 text-slate-400" />Map preview</div>

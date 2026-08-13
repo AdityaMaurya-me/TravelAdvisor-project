@@ -919,6 +919,9 @@ export type Database = {
           external_source: string | null
           facts: Json | null
           google_place_id: string | null
+          google_rating: number | null
+          google_rating_checked_at: string | null
+          google_rating_count: number | null
           has_ev_charging: boolean | null
           has_parking: boolean | null
           has_washroom: boolean | null
@@ -957,6 +960,9 @@ export type Database = {
           external_source?: string | null
           facts?: Json | null
           google_place_id?: string | null
+          google_rating?: number | null
+          google_rating_checked_at?: string | null
+          google_rating_count?: number | null
           has_ev_charging?: boolean | null
           has_parking?: boolean | null
           has_washroom?: boolean | null
@@ -995,6 +1001,9 @@ export type Database = {
           external_source?: string | null
           facts?: Json | null
           google_place_id?: string | null
+          google_rating?: number | null
+          google_rating_checked_at?: string | null
+          google_rating_count?: number | null
           has_ev_charging?: boolean | null
           has_parking?: boolean | null
           has_washroom?: boolean | null
