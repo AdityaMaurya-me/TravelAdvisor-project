@@ -13,6 +13,7 @@ export function PlaceTravelStatus({ placeId, placeName, destinationName }: { pla
   const [status, setStatus] = useState<Status>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${placeName}, ${destinationName}`)}`;
 
   const load = async () => {
     setIsLoading(true);
@@ -44,7 +45,6 @@ export function PlaceTravelStatus({ placeId, placeName, destinationName }: { pla
     if (!error) setStatus(null);
   };
 
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${placeName}, ${destinationName}`)}`;
 
   return <section className="rounded-2xl border border-border bg-card p-5"><p className="text-sm font-medium text-cyan-300">Your travel plan</p><h2 className="mt-1 text-lg font-semibold">Plan this place</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Keep a private record of places you want to visit and places you have already explored.</p><div className="mt-4 grid gap-2"><button type="button" disabled={isSaving || isLoading} onClick={() => void setTravelStatus("want_to_visit")} className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium ${status === "want_to_visit" ? "border-cyan-400 bg-cyan-400/15 text-cyan-100" : "border-border hover:border-cyan-400/60"}`}><Route className="h-4 w-4" />{status === "want_to_visit" ? "On your travel list" : "Want to visit"}</button><button type="button" disabled={isSaving || isLoading} onClick={() => void setTravelStatus("visited")} className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium ${status === "visited" ? "border-emerald-400 bg-emerald-400/15 text-emerald-100" : "border-border hover:border-emerald-400/60"}`}><CheckCircle2 className="h-4 w-4" />{status === "visited" ? "Marked visited" : "Mark visited"}</button><a href={mapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium hover:border-cyan-400/60"><MapPinned className="h-4 w-4" />Open in Maps</a>{status && <button type="button" disabled={isSaving} onClick={() => void clearStatus()} className="inline-flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground hover:text-red-300"><X className="h-3.5 w-3.5" />Clear travel status</button>}</div></section>;
 }

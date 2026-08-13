@@ -35,6 +35,11 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [captchaRequired, setCaptchaRequired] = useState(Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY));
   const [captchaToken, setCaptchaToken] = useState("");
+  // Keep a session signal in the root provider. The provider stays mounted
+  // while users move between pages, so protected buttons do not briefly treat
+  // a just-signed-in user as anonymous during a client-side transition.
+  const [authenticatedUserId, setAuthenticatedUserId] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => setLastEmail(getLastSignInEmail()), []);
 
@@ -52,11 +57,15 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     void (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) await syncGuestSaves();
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthenticatedUserId(session?.user.id ?? null);
+      setAuthChecked(true);
+      if (session?.user) await syncGuestSaves();
     })();
-    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") void syncGuestSaves();
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthenticatedUserId(session?.user.id ?? null);
+      setAuthChecked(true);
+      if (event === "SIGNED_IN" && session?.user) void syncGuestSaves();
     });
     return () => subscription.subscription.unsubscribe();
   }, []);
@@ -68,8 +77,29 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const requireAuth = async (resumeAction?: ResumeAction) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) return true;
+    if (authenticatedUserId) return true;
+    // `getSession` reads the browser's persisted Supabase session first. UI
+    // actions must not reopen the login modal just because a network-backed
+    // `getUser()` validation races with client-side navigation. Server actions
+    // still validate the JWT independently before performing any write.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setAuthenticatedUserId(session.user.id);
+      return true;
+    }
+
+    // Let the initial session restoration finish before considering the user
+    // anonymous. This avoids a false sign-in prompt immediately after a page
+    // switch or the first click following a hard redirect from sign-in.
+    if (!authChecked) {
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
+      const { data: { session: restoredSession } } = await supabase.auth.getSession();
+      if (restoredSession?.user) {
+        setAuthenticatedUserId(restoredSession.user.id);
+        return true;
+      }
+      setAuthChecked(true);
+    }
     pendingAction.current = resumeAction;
     setMessage("");
     setIsOpen(true);
@@ -101,12 +131,17 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
     const { error: sessionError } = await supabase.auth.setSession(result.session);
     if (sessionError) { setMessage("We could not complete that request. Check your details and try again."); return; }
 
+    const { data: { session: establishedSession } } = await supabase.auth.getSession();
+    setAuthenticatedUserId(establishedSession?.user.id ?? null);
+    setAuthChecked(true);
     rememberSignInEmail(email);
     setLastEmail(email.trim().toLowerCase());
     await syncGuestSaves();
     const action = pendingAction.current;
     setIsOpen(false);
     pendingAction.current = undefined;
+    // Make the client-set Supabase session observable by server components
+    // before restoring the action that opened this modal.
     router.refresh();
     await action?.();
   };

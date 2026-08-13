@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { clearFailedAuthAttempts, checkAuthAttempt, recordFailedAuthAttempt } from "@/lib/auth/rate-limit";
+import { clearFailedAuthAttempts, checkAuthAttempt, hashAttemptKey, recordFailedAuthAttempt } from "@/lib/auth/rate-limit";
 import { isStrongPassword } from "@/lib/auth/password-policy";
 
 const GENERIC_AUTH_ERROR = "We could not complete that request. Check your details and try again.";
@@ -46,8 +46,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const email = normalizeEmail(input.email);
   const password = typeof input.password === "string" ? input.password : "";
   const captchaToken = typeof input.captchaToken === "string" && input.captchaToken ? input.captchaToken : undefined;
-  const attemptKey = `${getClientAddress(request)}:${action}`;
-  const attempt = checkAuthAttempt(attemptKey);
+  // Keep only a keyed digest in the shared store: never raw IPs or emails.
+  const attemptKey = hashAttemptKey(`${getClientAddress(request)}:${action}`);
+  const attempt = await checkAuthAttempt(attemptKey);
 
   // Use the same status, response shape, and minimum response time for all
   // unknown/known-email outcomes. Do not pass provider error text to clients.
@@ -61,14 +62,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const response = await supabaseAuth("signup", { email, password, captcha_token: captchaToken, data: {} });
       // A duplicate email with email confirmations enabled intentionally has
       // an indistinguishable successful response. Do not expose session/error.
-      if (!response.ok) recordFailedAuthAttempt(attemptKey); else clearFailedAuthAttempts(attemptKey);
+      if (!response.ok) await recordFailedAuthAttempt(attemptKey); else await clearFailedAuthAttempts(attemptKey);
       return respondAfter(startedAt, { ok: true, message: GENERIC_EMAIL_MESSAGE, captchaRequired: false });
     }
 
     if (action === "signin") {
-      // Do this before contacting the provider. It keeps the result identical
-      // for known and unknown email addresses while reliably moving every
-      // legacy password into the recovery flow.
+      const response = await supabaseAuth("token?grant_type=password", { email, password, captcha_token: captchaToken });
+      const result = response.ok ? await response.json().catch(() => null) as { access_token?: string; refresh_token?: string; user?: { email_confirmed_at?: string | null } } | null : null;
+      if (!response.ok || !result?.access_token || !result.refresh_token || !result.user?.email_confirmed_at) {
+        const failure = await recordFailedAuthAttempt(attemptKey);
+        return respondAfter(startedAt, { ok: false, message: GENERIC_AUTH_ERROR, captchaRequired: failure.captchaRequired, locked: failure.locked }, failure.locked ? 429 : 200);
+      }
+
+      await clearFailedAuthAttempts(attemptKey);
+      // A legacy password is only redirected after Supabase has verified the
+      // submitted credentials. Incorrect passwords and unknown emails retain
+      // the same generic failure response above.
       if (!isStrongPassword(password)) {
         return respondAfter(startedAt, {
           ok: false,
@@ -77,15 +86,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           captchaRequired: false,
         });
       }
-
-      const response = await supabaseAuth("token?grant_type=password", { email, password, captcha_token: captchaToken });
-      const result = response.ok ? await response.json().catch(() => null) as { access_token?: string; refresh_token?: string; user?: { email_confirmed_at?: string | null } } | null : null;
-      if (!response.ok || !result?.access_token || !result.refresh_token || !result.user?.email_confirmed_at) {
-        const failure = recordFailedAuthAttempt(attemptKey);
-        return respondAfter(startedAt, { ok: false, message: GENERIC_AUTH_ERROR, captchaRequired: failure.captchaRequired, locked: failure.locked }, failure.locked ? 429 : 200);
-      }
-
-      clearFailedAuthAttempts(attemptKey);
       return respondAfter(startedAt, { ok: true, session: { access_token: result.access_token, refresh_token: result.refresh_token }, captchaRequired: false });
     }
 
@@ -94,19 +94,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // unregistered emails. The one-time recovery secret stays in Supabase.
       const appUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.nextUrl.origin;
       const response = await supabaseAuth("recover", { email, captcha_token: captchaToken, redirect_to: `${appUrl}/reset-password` });
+      // Operational trace only. Keep account identifiers, tokens, and the
+      // provider response body out of logs so recovery requests stay private.
+      console.info("Supabase password-recovery request completed", { status: response.status, accepted: response.ok });
       if (!response.ok) {
         // Keep the public response generic to prevent account enumeration,
         // but retain a safe operational signal in server logs. Never log the
         // email address, recovery token, or provider response body.
         console.error("Supabase password-recovery request failed", { status: response.status });
-        recordFailedAuthAttempt(attemptKey);
+        await recordFailedAuthAttempt(attemptKey);
       } else {
-        clearFailedAuthAttempts(attemptKey);
+        await clearFailedAuthAttempts(attemptKey);
       }
       return respondAfter(startedAt, { ok: true, message: GENERIC_EMAIL_MESSAGE, captchaRequired: false });
     }
   } catch {
-    recordFailedAuthAttempt(attemptKey);
+    await recordFailedAuthAttempt(attemptKey);
   }
 
   return respondAfter(startedAt, { ok: false, message: GENERIC_AUTH_ERROR, captchaRequired: true });

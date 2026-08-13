@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { getNavSection, getSectionMemoryKey, NAV_SECTIONS } from "@/lib/navigation/section-memory";
+import { getNavSection, getSectionMemoryKey, isRememberedSectionRoute, NAV_SECTIONS } from "@/lib/navigation/section-memory";
 
 export const LAST_ROUTE_KEY = "traveladvisor:last-route";
 export const LAST_DETAIL_ROUTE_KEY = "traveladvisor:last-detail-route";
@@ -25,7 +25,7 @@ export function NavigationMemory() {
     const section = getNavSection(pathname);
     // Main navbar pages are deliberate reset destinations. Keep the last
     // deeper route so switching away and back resumes where the user stopped.
-    if (currentRoute !== NAV_SECTIONS[section].href) {
+    if (isRememberedSectionRoute(section, pathname)) {
       sessionStorage.setItem(getSectionMemoryKey(section), currentRoute);
     }
 

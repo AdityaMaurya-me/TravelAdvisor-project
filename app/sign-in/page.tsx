@@ -22,7 +22,9 @@ export default function SignInPage() {
   const [captchaRequired, setCaptchaRequired] = useState(Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY));
   const [captchaToken, setCaptchaToken] = useState("");
   const next = searchParams.get("next");
-  const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/collections";
+  // A direct sign-in starts from the travel experience, not a private
+  // collection. A valid in-app `next` still resumes the original task.
+  const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   useEffect(() => setLastEmail(getLastSignInEmail()), []);
 
@@ -51,8 +53,10 @@ export default function SignInPage() {
     if (sessionError) { setMessage("We could not complete that request. Check your details and try again."); return; }
 
     rememberSignInEmail(email);
-    router.push(nextPath);
-    router.refresh();
+    // Use a document navigation after writing the browser auth cookies. This
+    // makes the new session visible to server-rendered pages and the navbar
+    // on the first destination, rather than leaving a stale anonymous tree.
+    window.location.assign(nextPath);
   };
 
   const switchMode = (mode: boolean) => {
