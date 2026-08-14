@@ -6,6 +6,8 @@ import { AlertCircle, Crosshair, LoaderCircle, MapPin, Navigation, Star } from "
 import { useEffect, useRef, useState } from "react";
 
 import { mapTilerStyle, OPEN_STREET_MAP_FALLBACK_STYLE } from "@/lib/maps/map-style";
+import { isLocationEnabled } from "@/lib/location-preference";
+import { LocationAccessPrompt } from "@/components/ui/location-access-prompt";
 
 import "@maptiler/sdk/dist/maptiler-sdk.css";
 
@@ -43,6 +45,7 @@ export function NearbyExplorerMap() {
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
   const [mapMessage, setMapMessage] = useState("");
   const [usingFallback, setUsingFallback] = useState(false);
+  const [locationPromptOpen, setLocationPromptOpen] = useState(false);
 
   const selected = places.find((place) => place.id === selectedId) ?? places[0] ?? null;
 
@@ -62,6 +65,19 @@ export function NearbyExplorerMap() {
       setMessage(snapshot.message ?? `${snapshot.places.length} verified places near you.`);
       setState("ready");
     } catch { window.localStorage.removeItem(NEARBY_SESSION_KEY); }
+  }, []);
+
+  useEffect(() => {
+    const clearLocationState = (event: Event) => {
+      if ((event as CustomEvent<{ enabled?: boolean }>).detail?.enabled !== false) return;
+      setOrigin(null);
+      setPlaces([]);
+      setSelectedId(null);
+      setState("idle");
+      setMessage("Location services are disabled. Enable them in Settings to find places near you.");
+    };
+    window.addEventListener("traveladvisor:location-preference", clearLocationState);
+    return () => window.removeEventListener("traveladvisor:location-preference", clearLocationState);
   }, []);
 
   useEffect(() => {
@@ -196,7 +212,7 @@ export function NearbyExplorerMap() {
     }
   };
 
-  const useCurrentLocation = () => {
+  const startLocationRequest = () => {
     if (!navigator.geolocation) {
       setState("error");
       setMessage("Your browser does not support location services.");
@@ -212,6 +228,14 @@ export function NearbyExplorerMap() {
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
+  };
+
+  const useCurrentLocation = () => {
+    if (!isLocationEnabled()) {
+      setLocationPromptOpen(true);
+      return;
+    }
+    startLocationRequest();
   };
 
   const updateRadius = (nextRadius: number) => {
@@ -238,6 +262,7 @@ export function NearbyExplorerMap() {
           </div>
         </div>
       </div>
+      <LocationAccessPrompt open={locationPromptOpen} onOpenChange={setLocationPromptOpen} onEnable={startLocationRequest} />
     </section>
   );
 }

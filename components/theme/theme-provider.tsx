@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
-type ThemeContextValue = { theme: Theme; toggleTheme: () => void };
+type ThemeContextValue = { theme: Theme; setTheme: (theme: Theme) => void; toggleTheme: () => void };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 const storageKey = "traveladvisor:theme";
@@ -25,6 +25,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.style.colorScheme = theme;
   }, [theme]);
 
+  const updateTheme = (nextTheme: Theme) => {
+    window.localStorage.setItem(storageKey, nextTheme);
+    setTheme(nextTheme);
+  };
+
   const toggleTheme = () => {
     setTheme((currentTheme) => {
       const nextTheme = currentTheme === "dark" ? "light" : "dark";
@@ -33,7 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ theme, setTheme: updateTheme, toggleTheme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

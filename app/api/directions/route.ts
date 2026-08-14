@@ -8,7 +8,10 @@ type DirectionsRequest = {
 };
 
 const validProfiles = new Set(["driving-car", "cycling-regular", "foot-walking"]);
-const googleTravelModes = { "driving-car": "DRIVE", "cycling-regular": "BICYCLE", "foot-walking": "WALK" } as const;
+// The product's "Bike" option is intended for the motorcycle/two-wheeler
+// journeys that are common in India. `BICYCLE` is human-powered cycling and
+// often has no country-wide network for long trips such as Mumbai → Delhi.
+const googleTravelModes = { "driving-car": "DRIVE", "cycling-regular": "TWO_WHEELER", "foot-walking": "WALK" } as const;
 
 function isCoordinate(value: unknown, minimum: number, maximum: number) {
   return typeof value === "number" && Number.isFinite(value) && value >= minimum && value <= maximum;
@@ -54,7 +57,7 @@ async function getGoogleRoute(apiKey: string, origin: Required<DirectionsRequest
       origin: { location: { latLng: { latitude: origin!.latitude!, longitude: origin!.longitude! } } },
       destination: { location: { latLng: { latitude: destination!.latitude!, longitude: destination!.longitude! } } },
       travelMode,
-      ...(travelMode === "DRIVE" ? { routingPreference: "TRAFFIC_AWARE" } : {}),
+      ...(travelMode === "DRIVE" || travelMode === "TWO_WHEELER" ? { routingPreference: "TRAFFIC_AWARE" } : {}),
       polylineQuality: "HIGH_QUALITY",
       languageCode: "en",
       units: "METRIC",
@@ -95,7 +98,7 @@ async function getOpenRouteServiceRoute(apiKey: string, origin: Required<Directi
   const feature = body?.features?.[0]; const coordinates = feature?.geometry?.coordinates; const summary = feature?.properties?.summary;
   if (!Array.isArray(coordinates) || coordinates.length < 2 || !summary) throw new Error("The directions service returned an incomplete route.");
   return {
-    provider: "OpenRouteService road network",
+    provider: profile === "cycling-regular" ? "OpenRouteService cycling network" : "OpenRouteService road network",
     profile,
     distanceMeters: Number(summary.distance ?? 0),
     durationSeconds: Number(summary.duration ?? 0),
@@ -115,13 +118,38 @@ export async function POST(request: Request) {
   }
   if (origin!.longitude === destination!.longitude && origin!.latitude === destination!.latitude) return NextResponse.json({ error: "Choose two different locations." }, { status: 400 });
 
-  try {
-    const googleDemoKey = process.env.GOOGLE_MAPS_DEMO_API_KEY;
-    if (googleDemoKey) return NextResponse.json(await getGoogleRoute(googleDemoKey, origin as Required<DirectionsRequest>["origin"], destination as Required<DirectionsRequest>["destination"], profile));
-    const orsKey = process.env.OPENROUTESERVICE_API_KEY;
-    if (orsKey) return NextResponse.json(await getOpenRouteServiceRoute(orsKey, origin as Required<DirectionsRequest>["origin"], destination as Required<DirectionsRequest>["destination"], profile));
-    return NextResponse.json({ error: "Directions are not configured. Add GOOGLE_MAPS_DEMO_API_KEY or OPENROUTESERVICE_API_KEY to the server environment." }, { status: 503 });
-  } catch (caught) {
-    return NextResponse.json({ error: roadAccessError(caught instanceof Error ? caught.message : "The directions service could not be reached. Please try again.") }, { status: 422 });
+  const routeOrigin = origin as Required<DirectionsRequest>["origin"];
+  const routeDestination = destination as Required<DirectionsRequest>["destination"];
+  const googleDemoKey = process.env.GOOGLE_MAPS_DEMO_API_KEY;
+  const orsKey = process.env.OPENROUTESERVICE_API_KEY;
+  let googleError: unknown = null;
+
+  // Google is preferred for traffic-aware car/two-wheeler routes, but an
+  // incomplete beta-mode response must not prevent the configured fallback
+  // provider from serving the route.
+  if (googleDemoKey) {
+    try {
+      return NextResponse.json(await getGoogleRoute(googleDemoKey, routeOrigin, routeDestination, profile));
+    } catch (caught) {
+      googleError = caught;
+    }
   }
+
+  if (orsKey) {
+    try {
+      const fallbackRoute = await getOpenRouteServiceRoute(orsKey, routeOrigin, routeDestination, profile);
+      return NextResponse.json({
+        ...fallbackRoute,
+        provider: googleDemoKey ? `${fallbackRoute.provider} (Google fallback)` : fallbackRoute.provider,
+      });
+    } catch (caught) {
+      return NextResponse.json({ error: roadAccessError(caught instanceof Error ? caught.message : "The directions service could not be reached. Please try again.") }, { status: 422 });
+    }
+  }
+
+  if (googleError) {
+    return NextResponse.json({ error: roadAccessError(googleError instanceof Error ? googleError.message : "Google Maps could not calculate a route.") }, { status: 422 });
+  }
+
+  return NextResponse.json({ error: "Directions are not configured. Add GOOGLE_MAPS_DEMO_API_KEY or OPENROUTESERVICE_API_KEY to the server environment." }, { status: 503 });
 }

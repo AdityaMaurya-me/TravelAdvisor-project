@@ -10,7 +10,9 @@ import { Footer } from "@/components/layout/footer";
 import { PlacePhoto } from "@/components/ui/place-photo";
 import type { CategoryExplorer } from "@/lib/mock-data/category-explorer";
 
-export function CategoryExplorerPage({ category }: { category: CategoryExplorer }) {
+type SimilarCategory = { slug: string; title: string; image: string };
+
+export function CategoryExplorerPage({ category, similarCategories }: { category: CategoryExplorer; similarCategories: SimilarCategory[] }) {
   const [filter, setFilter] = useState<"all" | "rating" | "reviews">("all");
   const categoryHref = `/categories/${category.slug}${category.destination ? `?destination=${encodeURIComponent(category.destination.slug)}` : ""}`;
 
@@ -87,7 +89,8 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
             ))}
           </section>
 
-          <aside className="relative min-h-100 overflow-hidden rounded-2xl border border-border bg-card lg:top-24 lg:h-[520px] lg:sticky">
+          <aside className="min-h-100 overflow-hidden rounded-2xl border border-border bg-card lg:sticky lg:top-24 lg:h-[520px]">
+            <div className="relative h-full min-h-100">
             <Image src="/hero-bg.jpg" alt={`Map preview of ${category.destination?.title ?? "published destinations"}`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover opacity-35 saturate-50" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_42%,rgba(6,182,212,.25),transparent_28%),linear-gradient(135deg,rgba(5,20,35,.55),rgba(10,40,56,.85))]" />
             <div className="absolute left-5 top-5 flex items-center gap-2 rounded-lg bg-slate-950/75 px-3 py-2 text-sm font-medium backdrop-blur"><Search className="h-4 w-4 text-slate-400" />Map preview</div>
@@ -97,15 +100,17 @@ export function CategoryExplorerPage({ category }: { category: CategoryExplorer 
               return <Link key={place.id} aria-label={`Open ${place.title}`} href={`/place/${place.slug}?from=${encodeURIComponent(categoryHref)}&fromLabel=Back%20to%20${encodeURIComponent(category.destination ? `${category.title} in ${category.destination.title}` : category.title)}`} className="absolute grid h-9 w-9 place-items-center rounded-full border-2 border-white/70 bg-cyan-500 text-xs font-bold shadow-lg shadow-cyan-950/80 transition hover:scale-110" style={{ left: `${left}%`, top: `${top}%` }}><MapPin className="h-4 w-4" /></Link>;
             })}
             <p className="absolute bottom-5 left-5 rounded-lg bg-slate-950/75 px-3 py-2 text-sm text-slate-200 backdrop-blur">{category.destination?.title ?? "Published destinations"}</p>
+            </div>
           </aside>
         </div>
 
         <section className="mt-12">
-          <div className="flex items-end justify-between"><div><h2 className="text-2xl font-bold">Explore similar categories</h2><p className="mt-1 text-sm text-slate-400">More ways to plan your next stop.</p></div><Link href="/categories" className="text-sm text-cyan-300 hover:text-cyan-200">View all</Link></div>
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {[{ title: "Forts", slug: "forts" }, { title: "Cafés", slug: "cafes" }, { title: "Viewpoints", slug: "viewpoints" }, { title: "Camping", slug: "camping" }, { title: "Local food", slug: "local-food" }].map((item, index) => <Link key={item.slug} href={`/categories/${item.slug}${category.destination ? `?destination=${encodeURIComponent(category.destination.slug)}` : ""}`} className="group relative h-32 overflow-hidden rounded-xl border border-slate-800"><Image src={`/attraction-${(index % 4) + 1}.png`} alt="" fill sizes="(max-width: 640px) 50vw, 20vw" className="object-cover opacity-55 transition group-hover:scale-105" /><span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950 to-transparent px-3 pb-3 pt-8 text-sm font-semibold">{item.title}</span></Link>)}
-          </div>
+          <div className="flex items-end justify-between"><div><h2 className="text-2xl font-bold">Explore similar categories</h2><p className="mt-1 text-sm text-slate-400">More ways to plan your next stop.</p></div><Link href={`/categories${category.destination ? `?destination=${encodeURIComponent(category.destination.slug)}` : ""}`} className="text-sm text-cyan-300 hover:text-cyan-200">View all</Link></div>
+          {similarCategories.length > 0 ? <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {similarCategories.slice(0, 5).map((item) => <Link key={item.slug} href={`/categories/${item.slug}${category.destination ? `?destination=${encodeURIComponent(category.destination.slug)}` : ""}`} className="group relative h-32 overflow-hidden rounded-xl border border-slate-800"><Image src={item.image} alt={`${item.title} category`} fill sizes="(max-width: 640px) 50vw, 20vw" className="object-cover opacity-55 transition group-hover:scale-105" /><span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950 to-transparent px-3 pb-3 pt-8 text-sm font-semibold">{item.title}</span></Link>)}
+          </div> : <p className="mt-5 rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400">More categories will appear as locations are added to {category.destination?.title ?? "the catalogue"}.</p>}
         </section>
+
       </div>
       <Footer />
     </main>

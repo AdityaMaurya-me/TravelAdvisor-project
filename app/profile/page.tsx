@@ -6,7 +6,6 @@ import { useAuthModal } from "@/components/auth/auth-modal-provider";
 import { Footer } from "@/components/layout/footer";
 import Navbar from "@/components/layout/navbar";
 import { supabase } from "@/lib/supabase";
-import { AppModal } from "@/components/ui/app-modal";
 import { readCachedProfile, writeCachedProfile } from "@/lib/auth/profile-cache";
 
 export default function ProfilePage() {
@@ -19,9 +18,6 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -107,31 +103,6 @@ export default function ProfilePage() {
     }
   };
 
-  const openDeleteDialog = () => {
-    setDeleteError("");
-    setConfirmDelete(true);
-  };
-
-  const closeDeleteDialog = () => {
-    if (!isDeleting) setConfirmDelete(false);
-  };
-
-  const deleteAccount = async () => {
-    setIsDeleting(true);
-    setDeleteError("");
-
-    const { error } = await supabase.functions.invoke("delete-account");
-    if (error) {
-      setDeleteError(error.message || "We could not remove your account. Please try again.");
-      setIsDeleting(false);
-      return;
-    }
-
-    await supabase.auth.signOut();
-    router.replace("/");
-    router.refresh();
-  };
-
   return (
     <main className="min-h-screen bg-background text-foreground">
       <Navbar />
@@ -180,37 +151,9 @@ export default function ProfilePage() {
             </button>
             {message && <p className="mt-3 text-sm text-cyan-200">{message}</p>}
           </section>
-
-          <section id="settings" className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-            <h2 className="text-xl font-semibold">Account settings</h2>
-            <p className="mt-1 text-sm text-slate-400">Manage your TravelAdvisor identity and preferences.</p>
-          </section>
-
-          <section className="rounded-2xl border border-red-500/30 bg-red-500/5 p-6">
-            <h2 className="text-xl font-semibold text-red-200">Remove account</h2>
-            <p className="mt-1 text-sm text-slate-400">Permanently delete your account and data from every device.</p>
-            <button type="button" onClick={openDeleteDialog} className="mt-5 rounded-lg border border-red-400/40 px-4 py-3 text-red-200">
-              Remove account
-            </button>
-          </section>
         </div>
       </section>
 
-      {confirmDelete && (
-        <AppModal open={confirmDelete} onOpenChange={(open) => { if (!open) closeDeleteDialog(); }} ariaLabel="Permanently remove account" className="border-red-500/30">
-            <h2 className="text-xl font-semibold text-red-200">Permanently remove account?</h2>
-            <p className="mt-3 text-sm text-slate-300">This cannot be undone. You will need to sign in again to use account features.</p>
-            {deleteError && <p role="alert" className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{deleteError}</p>}
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={closeDeleteDialog} disabled={isDeleting} className="rounded-lg border border-slate-700 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60">
-                Cancel
-              </button>
-              <button type="button" onClick={() => void deleteAccount()} disabled={isDeleting} className="rounded-lg bg-red-500 px-4 py-2 font-medium text-white disabled:cursor-wait disabled:opacity-70">
-                {isDeleting ? "Deleting…" : "Delete account"}
-              </button>
-            </div>
-        </AppModal>
-      )}
       <Footer />
     </main>
   );
