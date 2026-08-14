@@ -13,6 +13,288 @@ html {
   overflow-x: clip;
 }
 
+/* Day scheduler toggle: a compact, tactile switch used by the curation
+   opening-hours form. Its enabled state is deliberately obvious so closed
+   days cannot accidentally receive a time range. */
+.curation-hours-toggle {
+  display: inline-flex;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.curation-hours-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.curation-hours-toggle__track {
+  position: relative;
+  display: inline-flex;
+  width: 2.85rem;
+  height: 1.55rem;
+  align-items: center;
+  padding: 0.14rem;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--muted) 86%, transparent);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.24);
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.curation-hours-toggle__thumb {
+  display: block;
+  width: 1.08rem;
+  height: 1.08rem;
+  border-radius: 999px;
+  background: var(--muted-foreground);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 0.25);
+  transition: transform 210ms cubic-bezier(.34, 1.56, .64, 1), background 180ms ease;
+}
+
+.curation-hours-toggle input:focus-visible + .curation-hours-toggle__track {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.curation-hours-toggle input:checked + .curation-hours-toggle__track {
+  border-color: color-mix(in oklch, var(--primary) 72%, transparent);
+  background: color-mix(in oklch, var(--primary) 78%, #062a36);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.16), 0 0 0 3px color-mix(in oklch, var(--primary) 14%, transparent);
+}
+
+.curation-hours-toggle input:checked + .curation-hours-toggle__track .curation-hours-toggle__thumb {
+  transform: translateX(1.3rem);
+  background: white;
+}
+
+/* Navbar light/dark switch. The rounded track, opposing sun/moon glyphs, and
+   springing thumb are adapted to the TravelAdvisor colour system. */
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+  width: 3.7rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.18rem 0.28rem;
+  overflow: hidden;
+  border: 1px solid rgb(148 163 184 / 0.34);
+  border-radius: 999px;
+  background: linear-gradient(120deg, #07111e, #15314b);
+  color: #a5f3fc;
+  box-shadow: inset 0 1px 4px rgb(0 0 0 / 0.4), 0 0.35rem 0.9rem rgb(8 145 178 / 0.14);
+  cursor: pointer;
+  transition: border-color 220ms ease, background 300ms ease, box-shadow 220ms ease;
+}
+
+.theme-switch:hover {
+  border-color: rgb(103 232 249 / 0.86);
+  box-shadow: inset 0 1px 4px rgb(0 0 0 / 0.32), 0 0.45rem 1.1rem rgb(8 145 178 / 0.24);
+}
+
+.theme-switch:focus-visible {
+  outline: 2px solid #67e8f9;
+  outline-offset: 3px;
+}
+
+.theme-switch__thumb {
+  position: absolute;
+  z-index: 2;
+  top: 0.18rem;
+  left: 0.2rem;
+  display: grid;
+  width: 1.52rem;
+  height: 1.52rem;
+  place-items: center;
+  border: 1px solid rgb(186 230 253 / 0.7);
+  border-radius: 999px;
+  background: linear-gradient(145deg, #164460, #0b2437);
+  color: #e0f2fe;
+  box-shadow: 0 0.18rem 0.48rem rgb(0 0 0 / 0.4);
+  transition: transform 360ms cubic-bezier(.34, 1.56, .64, 1), background 300ms ease, border-color 300ms ease, color 300ms ease;
+}
+
+.theme-switch__thumb svg { width: 0.78rem; height: 0.78rem; }
+
+.theme-switch--light {
+  border-color: rgb(14 116 144 / 0.34);
+  background: linear-gradient(120deg, #b9e8f6, #e7f7fb);
+  box-shadow: inset 0 1px 4px rgb(14 116 144 / 0.12), 0 0.35rem 0.9rem rgb(14 116 144 / 0.11);
+}
+
+.theme-switch--light .theme-switch__thumb {
+  transform: translateX(1.67rem);
+  border-color: rgb(251 191 36 / 0.85);
+  background: linear-gradient(145deg, #fef3c7, #fbbf24);
+  color: #78350f;
+}
+
+/* Shared "View all" action. The expanding leading rule keeps this compact at
+   rest and makes navigation affordances obvious without changing their links. */
+.travel-view-all {
+  align-items: center;
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: #22d3ee;
+  cursor: pointer;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  line-height: 1.5;
+  outline: 0;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.travel-view-all::before {
+  display: inline-block;
+  width: 0;
+  height: 1px;
+  margin-right: 0;
+  background: currentColor;
+  content: "";
+  opacity: 0.9;
+  transition: width 420ms cubic-bezier(.25, .8, .25, 1), margin-right 420ms cubic-bezier(.25, .8, .25, 1);
+}
+
+.travel-view-all:hover::before,
+.travel-view-all:focus-visible::before {
+  width: 2.4rem;
+  margin-right: 0.65rem;
+}
+
+.travel-view-all:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.light .travel-view-all { color: #0e7490; }
+
+/* Primary navigation: a compact adaptation of the supplied 3D flip button.
+   The active route intentionally remains a full TravelAdvisor cyan surface. */
+.nav-main-link {
+  position: relative;
+  display: block;
+  min-width: 4.6rem;
+  height: 2.4rem;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1.2;
+  perspective: 800px;
+  transform-style: preserve-3d;
+}
+
+.nav-main-link > span {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 0.55rem;
+  color: inherit;
+  transform: rotateX(0deg);
+  transform-origin: top center;
+  transition: transform 200ms ease, background-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
+}
+
+.nav-main-link::before,
+.nav-main-link::after {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  content: "";
+  border-radius: 0.55rem;
+  pointer-events: none;
+}
+
+.nav-main-link::before {
+  z-index: 0;
+  background: color-mix(in oklch, var(--card) 88%, #000);
+}
+
+.nav-main-link::after {
+  z-index: 0;
+  width: 0;
+  background: rgb(34 211 238 / 0.42);
+}
+
+.nav-main-link:hover:not(.nav-main-link--active) > span {
+  color: #06111d;
+  background: #a5f3fc;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.6);
+  transform: rotateX(35deg);
+}
+
+.nav-main-link:hover:not(.nav-main-link--active)::after {
+  animation: nav-main-link-progress 1.2s ease-out;
+}
+
+.nav-main-link--active {
+  color: #06111d;
+}
+
+.nav-main-link--active > span {
+  background: #22d3ee;
+  box-shadow: 0 0.35rem 0.95rem rgb(34 211 238 / 0.25), inset 0 1px rgb(255 255 255 / 0.36);
+}
+
+.nav-main-link:focus-visible {
+  outline: 2px solid #67e8f9;
+  outline-offset: 3px;
+  border-radius: 0.55rem;
+}
+
+@keyframes nav-main-link-progress {
+  0% { width: 0; opacity: 1; }
+  15% { width: 16%; opacity: 1; }
+  35% { width: 38%; opacity: 1; }
+  58% { width: 76%; opacity: 1; }
+  68% { width: 100%; opacity: 1; }
+  100% { width: 100%; opacity: 0; }
+}
+
+.light .nav-main-link { color: #486174; }
+.light .nav-main-link::before { background: rgb(255 255 255 / 0.66); }
+.light .nav-main-link:hover:not(.nav-main-link--active) > span { background: #cffafe; color: #083344; }
+
+@media (prefers-reduced-motion: reduce) {
+  .curation-hours-toggle__track,
+  .curation-hours-toggle__thumb,
+  .theme-switch,
+  .theme-switch__thumb {
+    transition: none;
+  }
+
+  .travel-view-all::before {
+    transition: none;
+  }
+
+  .nav-main-link > span {
+    transition: none;
+  }
+
+  .nav-main-link:hover:not(.nav-main-link--active)::after {
+    animation: none;
+  }
+
+}
+
 body {
   min-width: 320px;
   max-width: 100%;
@@ -205,6 +487,142 @@ html.light body {
 
 .light button[class*="bg-cyan-"],
 .light [role="button"][class*="bg-cyan-"] { color: #000 !important; }
+
+/* Shared glass-card surface. Card components across the catalogue, search,
+   collections, moderation, AI, and profile views already use the semantic
+   `bg-card` token and a rounded border. Styling that shared contract keeps
+   their existing layouts intact while giving every card the same Uiverse-like
+   frosted-glass finish. Map canvases and inputs are intentionally excluded:
+   they do not carry both the card background and rounded-card contract. */
+:is(article, aside, section, a, div)[class*="bg-card"][class*="rounded"] {
+  border-color: rgb(255 255 255 / 0.22) !important;
+  background-color: color-mix(in srgb, var(--card) 74%, transparent) !important;
+  background-image:
+    radial-gradient(circle at 92% 22%, rgb(250 181 112 / 0.11) 0, rgb(250 181 112 / 0.05) 12%, transparent 34%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.075), transparent 48%);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
+  backdrop-filter: blur(20px) saturate(125%);
+  box-shadow: 0 0.8rem 2.1rem rgb(1 12 25 / 0.2), inset 0 1px rgb(255 255 255 / 0.045);
+  transition: border-color 300ms ease, box-shadow 300ms ease, background-color 300ms ease, transform 300ms ease;
+}
+
+:is(article, aside, section, a, div)[class*="bg-card"][class*="rounded"]:hover {
+  border-color: rgb(255 255 255 / 0.45) !important;
+  background-image:
+    radial-gradient(circle at 90% 20%, rgb(250 181 112 / 0.25) 0, rgb(250 181 112 / 0.11) 14%, transparent 38%),
+    radial-gradient(circle at 16% 88%, rgb(34 211 238 / 0.18) 0, transparent 34%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.13), transparent 52%);
+  box-shadow: 0 0 1.8rem rgb(34 211 238 / 0.25), 0 1rem 2.6rem rgb(1 12 25 / 0.28), inset 0 1px rgb(255 255 255 / 0.14);
+  transform: none !important;
+}
+
+.light :is(article, aside, section, a, div)[class*="bg-card"][class*="rounded"] {
+  border-color: rgb(14 116 144 / 0.2) !important;
+  background-color: rgb(255 255 255 / 0.72) !important;
+  background-image:
+    radial-gradient(circle at 92% 22%, rgb(251 191 36 / 0.12) 0, rgb(251 191 36 / 0.045) 13%, transparent 34%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.92), rgb(226 244 248 / 0.46));
+  box-shadow: 0 0.8rem 2.1rem rgb(31 55 78 / 0.11), inset 0 1px rgb(255 255 255 / 0.9);
+}
+
+.light :is(article, aside, section, a, div)[class*="bg-card"][class*="rounded"]:hover {
+  border-color: rgb(8 145 178 / 0.45) !important;
+  background-image:
+    radial-gradient(circle at 90% 20%, rgb(251 191 36 / 0.24) 0, rgb(251 191 36 / 0.09) 14%, transparent 38%),
+    radial-gradient(circle at 16% 88%, rgb(34 211 238 / 0.17) 0, transparent 34%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.98), rgb(226 244 248 / 0.52));
+  box-shadow: 0 0 1.8rem rgb(8 145 178 / 0.2), 0 1rem 2.6rem rgb(31 55 78 / 0.16), inset 0 1px rgb(255 255 255 / 0.98);
+  transform: none !important;
+}
+
+/* Category result tiles deliberately begin as a clean photo wall. On hover,
+   the angled information panel resolves into view with only the essentials
+   needed to choose a place: name, location, rating, and review count. */
+.category-reveal-card {
+  background: linear-gradient(-45deg, #0a6078 0%, #163255 100%);
+  transform-origin: center;
+  transition: transform 600ms cubic-bezier(.23, 1, .32, 1), box-shadow 600ms cubic-bezier(.23, 1, .32, 1), border-color 300ms ease;
+}
+
+.category-reveal-card > div > div:first-child img {
+  transition: transform 600ms cubic-bezier(.23, 1, .32, 1), filter 600ms ease;
+}
+
+.category-reveal-card__content {
+  z-index: 2;
+  background: linear-gradient(180deg, rgb(3 12 23 / 0.08), rgb(3 12 23 / 0.94) 78%);
+  opacity: 0;
+  transform: rotate(-14deg) scale(1.22);
+  transform-origin: center;
+  transition: opacity 600ms cubic-bezier(.23, 1, .32, 1), transform 600ms cubic-bezier(.23, 1, .32, 1);
+}
+
+.category-reveal-card__content > div:last-child > span:nth-last-child(-n + 2) {
+  display: none;
+}
+
+.category-reveal-link:hover .category-reveal-card,
+.category-reveal-link:focus-visible .category-reveal-card {
+  border-color: rgb(103 232 249 / 0.82) !important;
+  box-shadow: 0 0.9rem 1.6rem rgb(0 0 0 / 0.3), 0 0 1.7rem rgb(34 211 238 / 0.18);
+  transform: rotate(-2.2deg) scale(1.025);
+}
+
+.category-reveal-link:hover .category-reveal-card > div > div:first-child img,
+.category-reveal-link:focus-visible .category-reveal-card > div > div:first-child img {
+  filter: brightness(0.72) saturate(0.92);
+  transform: scale(1.06);
+}
+
+.category-reveal-link:hover .category-reveal-card__content,
+.category-reveal-link:focus-visible .category-reveal-card__content {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.light .category-reveal-card {
+  background: linear-gradient(-45deg, #2da9c0 0%, #d7f2f6 100%);
+}
+
+.light .category-reveal-card__content {
+  background: linear-gradient(180deg, rgb(240 253 255 / 0.04), rgb(10 38 53 / 0.9) 78%);
+}
+
+@media (hover: none) {
+  .category-reveal-card__content {
+    opacity: 1;
+    transform: none;
+  }
+
+  .category-reveal-card > div > div:first-child img {
+    filter: brightness(0.72) saturate(0.92);
+  }
+}
+
+/* Touch screens have no dependable hover state. Keep the two-column category
+   gallery, but make every tile a stable, straight card with its decision
+   details already visible rather than leaving an angled hover-only surface. */
+@media (max-width: 640px) {
+  .category-reveal-card,
+  .category-reveal-link:hover .category-reveal-card,
+  .category-reveal-link:focus-visible .category-reveal-card {
+    transform: none !important;
+  }
+
+  .category-reveal-card__content,
+  .category-reveal-link:hover .category-reveal-card__content,
+  .category-reveal-link:focus-visible .category-reveal-card__content {
+    opacity: 1;
+    transform: none;
+  }
+
+  .category-reveal-card > div > div:first-child img,
+  .category-reveal-link:hover .category-reveal-card > div > div:first-child img,
+  .category-reveal-link:focus-visible .category-reveal-card > div > div:first-child img {
+    filter: brightness(0.72) saturate(0.92);
+    transform: none;
+  }
+}
 
 .light .travel-hero-image { display: none; }
 .light .travel-hero-image-light {
@@ -401,6 +819,186 @@ html.light body {
     transform: scale(1.16);
   }
 
+  /* Shared button motion, adapted from barisdogansutcu's MIT-licensed
+     fuzzy-bullfrog Uiverse button. It is deliberately colour-neutral so the
+     existing primary, outline, danger, and icon-button variants keep their
+     semantic palettes. */
+  @keyframes travel-button-fly {
+    from { transform: translate(0, 0) rotate(0deg); }
+    to { transform: translate(0.14rem, -0.14rem) rotate(-7deg); }
+  }
+
+  button:not(.save-heart):not([data-button-skin="off"]) {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+  }
+
+  button:not(.save-heart):not([data-button-skin="off"])::after {
+    position: absolute;
+    inset: -75% auto -75% -45%;
+    z-index: 0;
+    width: 34%;
+    content: "";
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.32), transparent);
+    opacity: 0;
+    transform: translateX(-140%) rotate(12deg);
+    transition: transform 460ms ease, opacity 180ms ease;
+  }
+
+  button:not(.save-heart):not([data-button-skin="off"]):hover:not(:disabled) {
+    box-shadow: 0 0.5rem 1.15rem rgb(8 145 178 / 0.16);
+    transform: translateY(-2px);
+  }
+
+  button:not(.save-heart):not([data-button-skin="off"]):hover:not(:disabled)::after {
+    opacity: 1;
+    transform: translateX(500%) rotate(12deg);
+  }
+
+  button:not(.save-heart):not([data-button-skin="off"]):hover:not(:disabled) svg {
+    animation: travel-button-fly 520ms ease-in-out infinite alternate;
+  }
+
+  button:not(.save-heart):not([data-button-skin="off"]):active:not(:disabled) {
+    box-shadow: none;
+    transform: translateY(0) scale(0.96);
+  }
+
+  @keyframes travel-map-loader-pulse {
+    0%, 100% { transform: scale(0.6); opacity: 0.18; }
+    55% { transform: scale(1.12); opacity: 0.78; }
+  }
+
+  @keyframes travel-map-loader-pin {
+    0%, 100% { transform: translateY(-0.12rem); }
+    50% { transform: translateY(-0.58rem); }
+  }
+
+  .travel-map-loader {
+    position: relative;
+    display: grid;
+    height: 3.5rem;
+    width: 3.5rem;
+    place-items: center;
+  }
+
+  .travel-map-loader__pulse {
+    position: absolute;
+    inset: 0.25rem;
+    border: 2px solid rgb(34 211 238 / 0.6);
+    border-radius: 9999px;
+    box-shadow: 0 0 0 0.45rem rgb(34 211 238 / 0.07), 0 0 0 0.9rem rgb(34 211 238 / 0.035);
+    animation: travel-map-loader-pulse 1.3s ease-in-out infinite;
+  }
+
+  .travel-map-loader__pin {
+    position: relative;
+    display: grid;
+    height: 2.15rem;
+    width: 2.15rem;
+    place-items: center;
+    border: 1px solid rgb(165 243 252 / 0.78);
+    border-radius: 50% 50% 50% 0;
+    background: linear-gradient(145deg, #67e8f9, #0891b2);
+    color: #062033;
+    box-shadow: 0 0.75rem 1.5rem rgb(8 145 178 / 0.32);
+    transform: rotate(-45deg);
+    animation: travel-map-loader-pin 1.3s ease-in-out infinite;
+  }
+
+  .travel-map-loader__pin svg { transform: rotate(45deg); }
+
+  @keyframes travel-page-loader-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes travel-page-loader-needle {
+    0%, 100% { transform: rotate(-36deg); }
+    50% { transform: rotate(144deg); }
+  }
+
+  .travel-page-loader {
+    position: relative;
+    display: grid;
+    height: 5.75rem;
+    width: 5.75rem;
+    place-items: center;
+  }
+
+  .travel-page-loader__ring {
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgb(34 211 238 / 0.2);
+    border-right-color: #67e8f9;
+    border-bottom-color: #0891b2;
+    border-radius: 9999px;
+    box-shadow: 0 0 2.25rem rgb(8 145 178 / 0.16);
+    animation: travel-page-loader-spin 1.25s linear infinite;
+  }
+
+  .travel-page-loader__needle {
+    position: absolute;
+    height: 2rem;
+    width: 2px;
+    transform-origin: 50% 100%;
+    border-radius: 9999px;
+    background: linear-gradient(to top, #67e8f9, transparent);
+    animation: travel-page-loader-needle 1.65s ease-in-out infinite;
+  }
+
+  .travel-page-loader__compass {
+    position: relative;
+    display: grid;
+    height: 3.2rem;
+    width: 3.2rem;
+    place-items: center;
+    border: 1px solid rgb(165 243 252 / 0.7);
+    border-radius: 9999px;
+    background: linear-gradient(145deg, rgb(8 47 73 / 0.95), rgb(6 24 38 / 0.98));
+    color: #67e8f9;
+    box-shadow: inset 0 0 1rem rgb(34 211 238 / 0.12), 0 0.75rem 2rem rgb(8 145 178 / 0.18);
+  }
+
+  .travel-google-map-action {
+    box-shadow: 0 0.55rem 1.25rem rgb(8 145 178 / 0.12);
+  }
+
+  .travel-button-skin:hover {
+    box-shadow: 0 0.7rem 1.35rem rgb(8 145 178 / 0.2);
+    transform: translateY(-2px);
+  }
+
+  .travel-button-skin:active { transform: translateY(0) scale(0.96); }
+
+  .travel-button-skin:hover svg { animation: travel-button-fly 520ms ease-in-out infinite alternate; }
+
+  @keyframes travel-google-map-route {
+    to { background-position: 1.25rem 0; }
+  }
+
+  .travel-google-map-action__route {
+    position: absolute;
+    bottom: 0.42rem;
+    left: 18%;
+    width: 64%;
+    height: 2px;
+    border-radius: 9999px;
+    background: repeating-linear-gradient(90deg, rgb(34 211 238 / 0.2) 0 0.25rem, rgb(103 232 249 / 0.9) 0.25rem 0.48rem, transparent 0.48rem 0.72rem);
+    background-size: 1.25rem 100%;
+    animation: travel-google-map-route 1.3s linear infinite;
+  }
+
+  .travel-google-map-action__glow {
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: calc(0.75rem - 1px);
+    background: linear-gradient(105deg, rgb(34 211 238 / 0.09), transparent 42%, rgb(34 211 238 / 0.13));
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -523,7 +1121,13 @@ html.light body {
 
     .animate-heart-pop,
     .save-heart[data-popping]::before,
-    .save-heart[data-popping]::after {
+    .save-heart[data-popping]::after,
+    button:not(.save-heart):not([data-button-skin="off"]):hover:not(:disabled) svg,
+    .travel-map-loader__pulse,
+    .travel-map-loader__pin,
+    .travel-page-loader__ring,
+    .travel-page-loader__needle,
+    .travel-google-map-action__route {
       animation: none !important;
     }
   }

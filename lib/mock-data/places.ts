@@ -59,16 +59,35 @@ function getGoogleMapsUrl({
   marker,
   name,
   address,
+  sourceUrl,
 }: {
   googleMapsUri?: string;
   googlePlaceId?: string | null;
   marker: DetailMapMarker | null;
   name: string;
   address?: string | null;
+  sourceUrl?: string | null;
 }) {
-  if (googleMapsUri) return googleMapsUri;
+  if (googleMapsUri?.trim()) return googleMapsUri.trim();
+  // Older curated records can already hold their exact Maps share URL in the
+  // source field. Prefer it rather than reducing the hand-off to a generic
+  // name search.
+  if (sourceUrl?.trim()) {
+    try {
+      const source = new URL(sourceUrl);
+      const host = source.hostname.toLowerCase();
+      const isGoogleMapsUrl = host === "maps.app.goo.gl"
+        || host.startsWith("maps.google.")
+        || (host.startsWith("www.google.") && source.pathname.startsWith("/maps"));
+      if (isGoogleMapsUrl) return sourceUrl.trim();
+    } catch {
+      // An editorial source is optional; the deterministic fallbacks below
+      // remain safe when it is not a valid URL.
+    }
+  }
   if (googlePlaceId) {
-    return `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(googlePlaceId)}`;
+    const query = [name, address].filter(Boolean).join(", ");
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}&query_place_id=${encodeURIComponent(googlePlaceId)}`;
   }
   if (marker) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${marker.latitude},${marker.longitude}`)}`;
@@ -163,10 +182,12 @@ export async function getPlaceBySlug(
     : await (supabase as any).from("places").select("google_place_id").eq("canonical_place_id", place.id).eq("is_external", true).not("google_place_id", "is", null).limit(1).maybeSingle();
   const googlePlaceId = directGooglePlaceId ?? canonicalLiveRecord?.google_place_id ?? null;
   const googleMapsUrl = getGoogleMapsUrl({
+    googleMapsUri: (place as any).google_maps_uri ?? (place as any).google_maps_url ?? undefined,
     googlePlaceId,
     marker: mapMarker,
     name: place.name,
     address: place.address,
+    sourceUrl: (place as any).source_url ?? undefined,
   });
 
   const coverImage = typeof place.cover_image === "string" && place.cover_image.trim()

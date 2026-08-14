@@ -19,7 +19,11 @@ const MAX_VISIBLE_THUMBNAILS = 4;
 export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
   // Empty image rows can exist while an admin is editing a place. Never pass
   // them to next/image: an empty src makes the browser request the page itself.
-  const images = useMemo(() => (Array.isArray(place.images) ? place.images : []).filter((image): image is string => typeof image === "string" && image.trim().length > 0), [place.images]);
+  const images = useMemo(() => Array.from(new Set(
+    (Array.isArray(place.images) ? place.images : [])
+      .filter((image): image is string => typeof image === "string" && image.trim().length > 0)
+      .map((image) => image.trim()),
+  )), [place.images]);
   const [activeImage, setActiveImage] = useState<string | null>(place.coverImage || images[0] || null);
   const heroImage = typeof activeImage === "string" && activeImage.trim().length > 0 ? activeImage.trim() : null;
 
@@ -27,8 +31,12 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
     setActiveImage(place.coverImage || images[0] || null);
   }, [images, place.coverImage]);
 
-  const visibleThumbnails = images.slice(0, MAX_VISIBLE_THUMBNAILS);
-  const remainingCount = images.length - MAX_VISIBLE_THUMBNAILS;
+  // The cover already has the prominent display slot. Keep the gallery to
+  // genuinely additional photos so a missing or repeated cover cannot render
+  // a row of identical "photo being verified" placeholders.
+  const galleryImages = images.filter((image) => image !== heroImage);
+  const visibleThumbnails = galleryImages.slice(0, MAX_VISIBLE_THUMBNAILS);
+  const remainingCount = galleryImages.length - MAX_VISIBLE_THUMBNAILS;
   const defaultBackHref = place.destinationSlug ? `/destination/${place.destinationSlug}` : "/";
   const defaultBackLabel = place.destinationTitle ? `Back to ${place.destinationTitle}` : "Back to home";
 
@@ -57,7 +65,7 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
           /> : <div className="grid h-full place-items-center p-6 text-center text-sm text-muted-foreground">A photo for this place has not been added yet.</div>}
         </div>
 
-        <div className="grid grid-cols-4 gap-3">
+        {visibleThumbnails.length > 0 && <div className="grid grid-cols-4 gap-3">
           {visibleThumbnails.map((image, index) => {
             const isLastVisible = index === MAX_VISIBLE_THUMBNAILS - 1;
             const showOverlay = isLastVisible && remainingCount > 0;
@@ -89,7 +97,7 @@ export function PlaceHero({ place, backHref, backLabel }: PlaceHeroProps) {
               </button>
             );
           })}
-        </div>
+        </div>}
       </div>
 
       <div>

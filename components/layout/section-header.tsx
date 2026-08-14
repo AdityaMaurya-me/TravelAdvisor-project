@@ -31,7 +31,7 @@ export function SectionHeader({
       {href && (
         <Link
           href={href}
-          className="group inline-flex shrink-0 self-start whitespace-nowrap gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:ml-6 sm:self-end"
+          className={`group inline-flex shrink-0 self-start whitespace-nowrap gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:ml-6 sm:self-end ${actionLabel.toLowerCase().startsWith("view all") ? "travel-view-all" : ""}`}
         >
           {actionLabel}
 

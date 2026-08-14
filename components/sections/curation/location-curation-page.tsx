@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   ExternalLink,
@@ -83,7 +83,6 @@ const emptyForm = {
   googlePlaceId: "",
   googlePlaceName: "",
   googlePlaceAddress: "",
-  openingHours: "",
   entryFee: "",
   websiteUrl: "",
   phone: "",
@@ -96,12 +95,67 @@ const emptyForm = {
 const inputClass =
   "mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground outline-none focus:border-cyan-400";
 
+const OPENING_DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+type OpeningDay = {
+  enabled: boolean;
+  open: string;
+  close: string;
+};
+type OpeningSchedule = Record<(typeof OPENING_DAYS)[number], OpeningDay>;
+
+const createOpeningSchedule = (): OpeningSchedule =>
+  Object.fromEntries(
+    OPENING_DAYS.map((day) => [
+      day,
+      { enabled: false, open: "09:00", close: "18:00" },
+    ]),
+  ) as OpeningSchedule;
+
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const hour = Math.floor(index / 2);
+  const minute = index % 2 === 0 ? "00" : "30";
+  const value = `${String(hour).padStart(2, "0")}:${minute}`;
+  const suffix = hour < 12 ? "AM" : "PM";
+  const displayHour = hour % 12 || 12;
+  return { value, label: `${displayHour}:${minute} ${suffix}` };
+});
+
+function serializeOpeningSchedule(schedule: OpeningSchedule) {
+  return JSON.stringify(
+    Object.fromEntries(
+      OPENING_DAYS.map((day) => {
+        const hours = schedule[day];
+        return [
+          day,
+          {
+            closed: !hours.enabled,
+            open: hours.open,
+            close: hours.close,
+          },
+        ];
+      }),
+    ),
+  );
+}
+
 export function LocationCurationPage() {
   const { requireAuth } = useAuthModal();
   const searchParams = useSearchParams();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [openingSchedule, setOpeningSchedule] = useState<OpeningSchedule>(
+    createOpeningSchedule,
+  );
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -113,6 +167,34 @@ export function LocationCurationPage() {
   const [imagePreview, setImagePreview] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const formError = useMemo(() => {
+    if (!form.googlePlaceId) return "Choose the exact Google Maps match before submitting.";
+    if (!form.name.trim()) return "Add the location name.";
+    if (!form.destinationId) return "Choose the destination this location belongs to.";
+    if (!form.categories.split(",").some((category) => category.trim())) {
+      return "Add at least one category.";
+    }
+    const latitude = Number(form.latitude);
+    const longitude = Number(form.longitude);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      return "Add a valid latitude.";
+    }
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      return "Add a valid longitude.";
+    }
+    if (!form.sourceUrl.trim() && !form.sourceReference.trim()) {
+      return "Add a source URL or source reference for review.";
+    }
+    if (!form.description.trim()) return "Add a short description or verification note.";
+    const enabledDays = OPENING_DAYS.filter((day) => openingSchedule[day].enabled);
+    if (!enabledDays.length) return "Set opening hours for at least one operating day.";
+    if (enabledDays.some((day) => openingSchedule[day].open >= openingSchedule[day].close)) {
+      return "Each opening time must be earlier than its closing time.";
+    }
+    return "";
+  }, [form, openingSchedule]);
+  const canSubmit = !formError && !isSaving && !isUploadingImage;
 
   const load = async () => {
     const [
@@ -289,6 +371,10 @@ export function LocationCurationPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (formError) {
+      setMessage(formError);
+      return;
+    }
     if (!(await requireAuth(() => void submit(event)))) return;
     const {
       data: { user },
@@ -317,7 +403,7 @@ export function LocationCurationPage() {
         canonical_google_place_id: form.googlePlaceId || null,
         canonical_google_name: form.googlePlaceName || null,
         canonical_google_address: form.googlePlaceAddress || null,
-        opening_hours: form.openingHours.trim() || null,
+        opening_hours: serializeOpeningSchedule(openingSchedule),
         entry_fee: form.entryFee.trim() || null,
         website_url: form.websiteUrl.trim() || null,
         phone: form.phone.trim() || null,
@@ -335,6 +421,7 @@ export function LocationCurationPage() {
       return;
     }
     setForm(emptyForm);
+    setOpeningSchedule(createOpeningSchedule());
     setImagePreview("");
     setMessage(
       isCurator
@@ -456,13 +543,14 @@ export function LocationCurationPage() {
               <label className="text-sm font-medium">
                 Destination
                 <select
+                  required
                   value={form.destinationId}
                   onChange={(e) =>
                     setForm({ ...form, destinationId: e.target.value })
                   }
                   className={inputClass}
                 >
-                  <option value="">Choose later</option>
+                  <option value="">Choose destination</option>
                   {destinations.map((destination) => (
                     <option key={destination.id} value={destination.id}>
                       {destination.name}
@@ -619,18 +707,86 @@ export function LocationCurationPage() {
                 className={inputClass}
               />
             </div>
+            <section className="mt-4 rounded-xl border border-border bg-background/40 p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold">Opening hours</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Turn on every operating day, then set its opening and closing time. At least one day is required.
+                  </p>
+                </div>
+                <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-300">
+                  {OPENING_DAYS.filter((day) => openingSchedule[day].enabled).length} days open
+                </span>
+              </div>
+              <div className="mt-4 space-y-2.5">
+                {OPENING_DAYS.map((day) => {
+                  const hours = openingSchedule[day];
+                  const updateHours = (updates: Partial<OpeningDay>) =>
+                    setOpeningSchedule((current) => ({
+                      ...current,
+                      [day]: { ...current[day], ...updates },
+                    }));
+                  return (
+                    <div
+                      key={day}
+                      className={`grid items-center gap-3 rounded-xl border p-3 transition sm:grid-cols-[minmax(8rem,0.8fr)_auto_minmax(8rem,1fr)_minmax(8rem,1fr)] ${
+                        hours.enabled
+                          ? "border-cyan-400/30 bg-cyan-400/5"
+                          : "border-border/70 bg-muted/25"
+                      }`}
+                    >
+                      <label className="flex min-w-0 items-center justify-between gap-3 text-sm font-medium">
+                        <span>{day}</span>
+                        <span className="curation-hours-toggle" title={`${hours.enabled ? "Mark closed" : "Set opening hours for"} ${day}`}>
+                          <input
+                            type="checkbox"
+                            checked={hours.enabled}
+                            onChange={(event) => updateHours({ enabled: event.target.checked })}
+                            aria-label={`${hours.enabled ? "Mark" : "Set"} ${day} as ${hours.enabled ? "closed" : "open"}`}
+                          />
+                          <span className="curation-hours-toggle__track" aria-hidden="true">
+                            <span className="curation-hours-toggle__thumb" />
+                          </span>
+                        </span>
+                      </label>
+                      <span className={`text-xs font-medium sm:text-right ${hours.enabled ? "text-cyan-300" : "text-muted-foreground"}`}>
+                        {hours.enabled ? "Open" : "Closed"}
+                      </span>
+                      <div className="grid grid-cols-2 gap-2 sm:col-span-2 sm:grid-cols-2">
+                        <label className="text-xs text-muted-foreground">
+                          Opens
+                          <select
+                            value={hours.open}
+                            disabled={!hours.enabled}
+                            onChange={(event) => updateHours({ open: event.target.value })}
+                            className="mt-1 w-full rounded-lg border border-border bg-card px-2 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {TIME_OPTIONS.map((time) => (
+                              <option key={time.value} value={time.value}>{time.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="text-xs text-muted-foreground">
+                          Closes
+                          <select
+                            value={hours.close}
+                            disabled={!hours.enabled}
+                            onChange={(event) => updateHours({ close: event.target.value })}
+                            className="mt-1 w-full rounded-lg border border-border bg-card px-2 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {TIME_OPTIONS.map((time) => (
+                              <option key={time.value} value={time.value}>{time.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-medium">
-                Opening hours
-                <input
-                  value={form.openingHours}
-                  onChange={(e) =>
-                    setForm({ ...form, openingHours: e.target.value })
-                  }
-                  placeholder="Daily, 8 AM – 6 PM"
-                  className={inputClass}
-                />
-              </label>
               <label className="text-sm font-medium">
                 Entry fee
                 <input
@@ -724,8 +880,14 @@ export function LocationCurationPage() {
                 {message}
               </p>
             )}
+            {!message && formError && (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Complete the required details to enable submission: {formError}
+              </p>
+            )}
             <button
-              disabled={isSaving}
+              disabled={!canSubmit}
+              title={formError || undefined}
               className="mt-6 inline-flex items-center gap-2 rounded-lg bg-cyan-400 px-4 py-3 font-medium text-slate-950 disabled:opacity-60"
             >
               <CheckCircle2 className="h-4 w-4" />

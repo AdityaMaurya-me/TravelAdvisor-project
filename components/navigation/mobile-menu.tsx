@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Compass, FolderHeart, Home, Info, Menu, MessageCircle, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { getNavSection, getSectionDestination, type NavSection } from "@/lib/navigation/section-memory";
+import { startRouteLoading } from "@/components/navigation/page-transition-loader";
 
 const links = [
   { section: "home", label: "Home", icon: Home },
@@ -51,9 +52,9 @@ export function MobileMenu() {
               <button
                 key={section}
                 type="button"
-                onClick={() => { router.push(getSectionDestination(section as NavSection, pathname)); setIsOpen(false); }}
+                onClick={() => { const destination = getSectionDestination(section as NavSection, pathname); if (destination !== pathname) startRouteLoading(); router.push(destination); setIsOpen(false); }}
                 aria-current={getNavSection(pathname) === section ? "page" : undefined}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-4 text-left text-base font-medium transition ${getNavSection(pathname) === section ? "bg-cyan-400/10 text-cyan-200" : "text-foreground hover:bg-accent"}`}
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-4 text-left text-base font-medium transition ${getNavSection(pathname) === section ? "bg-cyan-400 text-slate-950" : "text-foreground hover:bg-accent"}`}
               >
                 <Icon className="h-5 w-5" />
                 {label}

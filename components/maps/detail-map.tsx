@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { DetailMapMarker } from "@/lib/data/detail-maps";
 import { mapTilerStyle, OPEN_STREET_MAP_FALLBACK_STYLE } from "@/lib/maps/map-style";
+import { MapLoadingIndicator } from "@/components/maps/map-loading-indicator";
 
 import "@maptiler/sdk/dist/maptiler-sdk.css";
 
@@ -166,7 +167,7 @@ export function DetailMap({ markers, title, mode, className = "", routeHref }: D
         {mode === "destination" && <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs text-cyan-100">{markers.length} places</span>}
       </div>
       <div className={`relative bg-card ${mode === "destination" ? "h-110" : "h-64"}`}>
-        {markers.length ? <><div ref={element} className="absolute inset-0" aria-label={`${title} interactive map`} />{isLoading && !error && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-card text-sm text-muted-foreground">Loading map…</div>}</> : <div className="absolute inset-0 grid place-items-center p-5 text-center text-sm leading-6 text-muted-foreground"><LocateFixed className="mb-3 h-7 w-7 text-cyan-300" />This place does not have verified coordinates yet.</div>}
+        {markers.length ? <><div ref={element} className="absolute inset-0" aria-label={`${title} interactive map`} />{isLoading && !error && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-card/90 p-5 backdrop-blur-sm"><MapLoadingIndicator label="Loading map" /></div>}</> : <div className="absolute inset-0 grid place-items-center p-5 text-center text-sm leading-6 text-muted-foreground"><LocateFixed className="mb-3 h-7 w-7 text-cyan-300" />This place does not have verified coordinates yet.</div>}
         {error && <div className="absolute inset-0 grid place-items-center bg-slate-950/70 p-5 text-center text-sm text-slate-200 backdrop-blur-sm">{error}</div>}
         {mode === "destination" && markers.length > 0 && <div className="pointer-events-none absolute left-4 top-4 rounded-lg border border-cyan-300/30 bg-slate-950/80 px-3 py-2 text-xs text-cyan-100 backdrop-blur"><Navigation className="mr-1 inline h-3.5 w-3.5" />Explorer area</div>}
         {usingFallback && markers.length > 0 && <div className="pointer-events-none absolute right-4 top-4 rounded-lg border border-border bg-background/90 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm backdrop-blur">OpenStreetMap backup</div>}

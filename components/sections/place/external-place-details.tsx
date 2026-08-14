@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, MapPin, MessageCircle, Navigation, Phone, Star, Globe2 } from "lucide-react";
+import { MapPin, MessageCircle, Navigation, Phone, Star, Globe2 } from "lucide-react";
 
 import { ensureExternalGooglePlace, type ManagedExternalPlace } from "@/app/actions/external-places";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
@@ -14,6 +14,7 @@ import { PlaceCommunityDiscussion } from "@/components/sections/place/place-comm
 import { PlaceTravelStatus } from "@/components/sections/place/place-travel-status";
 import { SaveDestinationButton } from "@/components/ui/save-destination-button";
 import { PlacePhoto } from "@/components/ui/place-photo";
+import { OpenGoogleMapsButton } from "@/components/ui/open-google-maps-button";
 import type { GooglePlaceDetail } from "@/lib/google-places";
 import { supabase } from "@/lib/supabase";
 
@@ -103,7 +104,7 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
             {managedPlace ? <PlaceCommunityDiscussion placeSlug={managedPlace.slug} placeName={place.name} /> : <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6"><div className="flex items-start gap-3"><div className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300"><MessageCircle className="h-5 w-5" /></div><div><h2 className="text-xl font-semibold">Community discussion</h2><p className="mt-1 text-sm text-slate-400">Be the first traveller to start a discussion about {place.name}.</p></div></div><button type="button" onClick={() => void enableFeatures()} disabled={isPreparing} className="mt-5 rounded-lg bg-cyan-400 px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-60">{isPreparing ? "Preparing discussion..." : "Sign in to write a review"}</button>{featureMessage && <p className="mt-4 text-sm text-amber-200">{featureMessage}</p>}</section>}
           </div>
           <aside className="space-y-5 lg:sticky lg:top-24">
-            {managedPlace && <PlaceTravelStatus placeId={managedPlace.id} placeName={place.name} destinationName={place.address || "Google place"} />}
+            {managedPlace && <PlaceTravelStatus placeId={managedPlace.id} placeName={place.name} destinationName={place.address || "Google place"} googleMapsUrl={place.googleMapsUri} />}
             <section className="rounded-2xl border border-border bg-card p-5">
               <p className="text-sm font-medium text-cyan-300">Place information</p>
               <div className="mt-4 space-y-4 text-sm">
@@ -112,7 +113,7 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
                 {place.priceLevel && <p className="rounded-lg bg-accent px-3 py-2 text-muted-foreground">Price level: {place.priceLevel.replace(/_/g, " ").toLowerCase()}</p>}
                 {place.phoneNumber && <a href={`tel:${place.phoneNumber.replace(/\s/g, "")}`} className="inline-flex items-center gap-2 text-sm font-medium text-cyan-300 transition hover:text-cyan-100"><Phone className="h-4 w-4" />{place.phoneNumber}</a>}
                 {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-cyan-300 transition hover:text-cyan-100"><Globe2 className="h-4 w-4" />Official website</a>}
-                {place.googleMapsUri && <a href={place.googleMapsUri} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-cyan-300 transition hover:text-cyan-100"><ExternalLink className="h-4 w-4" />View in Google Maps</a>}
+                {!managedPlace && place.googleMapsUri && <OpenGoogleMapsButton href={place.googleMapsUri} className="mt-1" />}
               </div>
             </section>
             <DetailMap markers={[marker]} title={place.name} mode="place" />

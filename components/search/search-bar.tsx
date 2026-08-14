@@ -87,7 +87,7 @@ export default function SearchBar({
 
   return (
     <form ref={element} onSubmit={onSubmit} className="relative w-full">
-      <div className="relative flex items-center">
+      <div className="flex min-w-0 items-center overflow-hidden rounded-full bg-white shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-cyan-400">
         <input
           id="homepage-place-search"
           name="place-search"
@@ -96,13 +96,14 @@ export default function SearchBar({
           onFocus={() => setOpen(true)}
           onChange={(e) => { onChange(e.target.value); setOpen(true); }}
           placeholder={placeholder}
-          className="search-bar-input w-full rounded-full bg-white px-8 py-5 pr-20 text-lg text-gray-900 shadow-lg transition-all placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          className="search-bar-input min-w-0 flex-1 bg-white px-6 py-5 text-base text-gray-900 transition-all placeholder:text-gray-400 focus:bg-white focus:outline-none sm:px-8 sm:text-lg"
         />
 
         <button
           type="submit"
           aria-label="Search"
-          className="absolute right-3 flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500 text-white transition-colors hover:bg-cyan-600"
+          data-button-skin="off"
+          className="mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-white transition-colors hover:bg-cyan-600 sm:h-12 sm:w-12"
         >
           <Search className="h-5 w-5" />
         </button>

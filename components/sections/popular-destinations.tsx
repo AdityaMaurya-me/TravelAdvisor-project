@@ -68,7 +68,7 @@ export default function PopularDestinations() {
         <h2 className="text-3xl font-bold text-white">
           Popular Destinations
         </h2>
-        <button className="text-cyan-400 hover:text-cyan-100 hover:underline transition-colors text-sm font-medium">
+        <button className="travel-view-all text-cyan-400 hover:text-cyan-100 transition-colors text-sm font-medium">
           View all
         </button>
       </div>

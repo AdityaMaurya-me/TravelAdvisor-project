@@ -34,11 +34,12 @@ export async function TrendingDestinations() {
             transition-colors
             hover:text-cyan-100
             pr-10
+            travel-view-all
           "
         >
           View all
 
-          <ArrowRight className="h-4 w-4" />
+          {/* <ArrowRight className="h-4 w-4" /> */}
         </Link>
       </div>
     

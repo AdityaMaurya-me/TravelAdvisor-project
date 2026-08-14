@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Clock3, MapPin, Navigation, Search, Star } from "lucide-react";
+import { ChevronRight, MapPin, Navigation, Search, Star } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import Navbar from "@/components/layout/navbar";
@@ -56,33 +56,30 @@ export function CategoryExplorerPage({ category, similarCategories }: { category
         </header>
 
         <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,0.96fr)_minmax(380px,1.04fr)]">
-          <section aria-label={`${category.title} places`} className="space-y-3">
+          <section aria-label={`${category.title} places`} className="grid grid-cols-2 gap-3 sm:gap-4">
             {visiblePlaces.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-8">
+              <div className="col-span-full rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-8">
                 <h2 className="text-lg font-semibold">{category.places.length === 0 ? "Places are being added" : "No places match this filter"}</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-400">{category.places.length === 0 ? `We have not published any ${category.title.toLowerCase()} places yet. Explore another category or check back soon.` : "Try a different filter to see every available place in this category."}</p>
                 {category.places.length === 0 ? <Link href="/categories" className="mt-5 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-200">Browse all categories</Link> : <button type="button" onClick={() => setFilter("all")} className="mt-5 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-200">Show all places</button>}
               </div>
-            ) : visiblePlaces.map((place, index) => (
-              <Link key={place.id} href={`/place/${place.slug}?from=${encodeURIComponent(categoryHref)}&fromLabel=Back%20to%20${encodeURIComponent(category.destination ? `${category.title} in ${category.destination.title}` : category.title)}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111e]">
-              <article className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90 p-2 transition hover:border-cyan-500/50">
-                <div className="flex gap-4">
-                  <div className="relative h-28 w-32 shrink-0 overflow-hidden rounded-xl sm:w-40"><PlacePhoto src={place.image} alt={place.title} query={`${place.title} ${place.location}`} googlePhotoName={place.googlePhotoName} googlePhotoAuthor={place.googlePhotoAuthor} sizes="(max-width: 640px) 8rem, 10rem" className="object-cover" /></div>
-                  <div className="min-w-0 flex-1 py-1">
+            ) : visiblePlaces.map((place) => (
+              <Link key={place.id} href={`/place/${place.slug}?from=${encodeURIComponent(categoryHref)}&fromLabel=Back%20to%20${encodeURIComponent(category.destination ? `${category.title} in ${category.destination.title}` : category.title)}`} className="category-reveal-link group block min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111e]">
+              <article className="category-reveal-card relative aspect-[5/4] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90">
+                <div className="relative h-full w-full">
+                  <div className="absolute inset-0"><PlacePhoto src={place.image} alt={place.title} query={`${place.title} ${place.location}`} googlePhotoName={place.googlePhotoName} googlePhotoAuthor={place.googlePhotoAuthor} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 40vw, 24vw" className="object-cover" /></div>
+                  <div className="category-reveal-card__content absolute inset-0 flex min-w-0 flex-col justify-end p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h2 className="font-semibold text-white sm:text-lg">{place.title}</h2>
-                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-400"><MapPin className="h-3.5 w-3.5" />{place.location}</p>
+                        <h2 className="line-clamp-2 text-base font-semibold text-white sm:text-lg">{place.title}</h2>
+                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-200"><MapPin className="h-3.5 w-3.5 shrink-0 text-cyan-300" /><span className="line-clamp-1">{place.location}</span></p>
                       </div>
-                      <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400"><Clock3 className="h-3.5 w-3.5" />{index === 0 ? "140 min" : `${65 + index * 20} min`}</span>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-300">{place.description}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-100">
                       {place.rating !== null ? <span className="flex items-center gap-1 text-amber-300"><Star className="h-3.5 w-3.5 fill-current" />{place.rating.toFixed(1)}</span> : <span className="text-muted-foreground">Rating pending</span>}
                       <span>{place.reviewCount} reviews</span><span>·</span><span>{place.distance}</span>
                     </div>
                   </div>
-                  <ChevronRight className="mr-2 mt-4 hidden h-5 w-5 text-slate-500 sm:block" />
                 </div>
               </article>
               </Link>
@@ -105,7 +102,7 @@ export function CategoryExplorerPage({ category, similarCategories }: { category
         </div>
 
         <section className="mt-12">
-          <div className="flex items-end justify-between"><div><h2 className="text-2xl font-bold">Explore similar categories</h2><p className="mt-1 text-sm text-slate-400">More ways to plan your next stop.</p></div><Link href={`/categories${category.destination ? `?destination=${encodeURIComponent(category.destination.slug)}` : ""}`} className="text-sm text-cyan-300 hover:text-cyan-200">View all</Link></div>
+          <div className="flex items-end justify-between"><div><h2 className="text-2xl font-bold">Explore similar categories</h2><p className="mt-1 text-sm text-slate-400">More ways to plan your next stop.</p></div><Link href={`/categories${category.destination ? `?destination=${encodeURIComponent(category.destination.slug)}` : ""}`} className="travel-view-all text-sm text-cyan-300 hover:text-cyan-200">View all</Link></div>
           {similarCategories.length > 0 ? <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {similarCategories.slice(0, 5).map((item) => <Link key={item.slug} href={`/categories/${item.slug}${category.destination ? `?destination=${encodeURIComponent(category.destination.slug)}` : ""}`} className="group relative h-32 overflow-hidden rounded-xl border border-slate-800"><Image src={item.image} alt={`${item.title} category`} fill sizes="(max-width: 640px) 50vw, 20vw" className="object-cover opacity-55 transition group-hover:scale-105" /><span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950 to-transparent px-3 pb-3 pt-8 text-sm font-semibold">{item.title}</span></Link>)}
           </div> : <p className="mt-5 rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400">More categories will appear as locations are added to {category.destination?.title ?? "the catalogue"}.</p>}
