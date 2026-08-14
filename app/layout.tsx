@@ -1,5 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
+import { Suspense } from 'react'
 import './globals.css'
 import { AuthModalProvider } from '@/components/auth/auth-modal-provider'
 import { PageTransitionLoader } from '@/components/navigation/page-transition-loader'
@@ -51,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
-        <ThemeProvider><AuthModalProvider><PageTransitionLoader />{children}</AuthModalProvider></ThemeProvider>
+        <ThemeProvider><AuthModalProvider><Suspense fallback={null}><PageTransitionLoader /></Suspense>{children}</AuthModalProvider></ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

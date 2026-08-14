@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { Suspense, type FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -10,6 +10,10 @@ import { isStrongPassword, PASSWORD_REQUIREMENTS_MESSAGE, sendAuthRequest } from
 import { supabase } from "@/lib/supabase";
 
 export default function ForgotPasswordPage() {
+  return <Suspense fallback={<main className="min-h-screen bg-background" />}><ForgotPasswordContent /></Suspense>;
+}
+
+function ForgotPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(() => searchParams.get("email") ?? "");

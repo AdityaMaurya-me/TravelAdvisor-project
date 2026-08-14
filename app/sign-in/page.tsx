@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -11,6 +11,10 @@ import { CaptchaChallenge } from "@/components/auth/captcha-challenge";
 import { isStrongPassword, PASSWORD_REQUIREMENTS_MESSAGE, sendAuthRequest } from "@/components/auth/auth-request";
 
 export default function SignInPage() {
+  return <Suspense fallback={<main className="min-h-screen bg-background" />}><SignInContent /></Suspense>;
+}
+
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(() => searchParams.get("mode") === "sign-up");

@@ -4,11 +4,12 @@ import { NavLinks } from "@/components/navigation/nav-links"
 import { UserMenu } from "@/components/navigation/user-menu"
 import { PageContainer } from "@/components/layout/page-container";
 import { NavigationMemory } from "@/components/navigation/navigation-memory";
+import { Suspense } from "react";
 
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 sm:px-6 lg:px-8 xl:px-10">
-      <NavigationMemory />
+      <Suspense fallback={null}><NavigationMemory /></Suspense>
       <PageContainer className="flex h-16 items-center justify-between">
         {/* Left */}
         <div className="flex items-center gap-3">

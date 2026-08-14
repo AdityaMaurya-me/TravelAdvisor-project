@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MapPinned, RefreshCw, Search, ShieldAlert } from "lucide-react";
 
@@ -13,6 +13,10 @@ type Place = { id: string; name: string; slug: string; city: string | null; goog
 type Match = { id: string; name: string; address: string; latitude: number; longitude: number };
 
 export default function GoogleMatchesPage() {
+  return <Suspense fallback={<main className="min-h-screen bg-background" />}><GoogleMatchesContent /></Suspense>;
+}
+
+function GoogleMatchesContent() {
   const searchParams = useSearchParams();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
