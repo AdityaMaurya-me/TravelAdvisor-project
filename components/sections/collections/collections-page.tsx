@@ -36,6 +36,7 @@ type RouteCollection = { id: string; title: string; count: number };
 type SavedPlace = {
   placeId: string;
   slug: string;
+  level: "country" | "state" | "city" | "village" | "attraction";
   title: string;
   location: string;
   image: string;
@@ -89,12 +90,13 @@ export function CollectionsPage() {
       setRouteCollections([]);
       const guestSlugs = getGuestSavedPlaceSlugs();
       const { data: guestPlaces, error: guestPlacesError } = guestSlugs.length
-        ? await supabase.from("places").select("id, slug, name, city, state, cover_image").in("slug", guestSlugs)
+        ? await supabase.from("places").select("id, slug, level, name, city, state, cover_image").in("slug", guestSlugs)
         : { data: [], error: null };
       if (guestPlacesError) setMessage(guestPlacesError.message);
       setPlaces((guestPlaces ?? []).map((place) => ({
         placeId: place.id,
         slug: place.slug,
+        level: place.level,
         title: place.name,
         location: [place.city, place.state].filter(Boolean).join(", "),
         image: place.cover_image || "/placeholder.jpg",
@@ -109,7 +111,7 @@ export function CollectionsPage() {
     setMessage("");
     const [{ data: items, error }, { data: routeCollectionRows, error: routeCollectionsError }] = await Promise.all([supabase
       .from("collections")
-      .select("id, title, is_system, collection_items(place_id, places(id, slug, name, city, state, cover_image))")
+      .select("id, title, is_system, collection_items(place_id, places(id, slug, level, name, city, state, cover_image))")
       .eq("user_id", user.id)
       .order("created_at"), (supabase as any).from("route_collections").select("id, title, route_collection_items(route_id), route_collection_trip_plans(trip_plan_id)").eq("user_id", user.id).order("created_at")]);
     if (error) setMessage(error.message);
@@ -167,6 +169,7 @@ export function CollectionsPage() {
         savedByPlace.set(place.id, {
           placeId: place.id,
           slug: place.slug,
+          level: place.level,
           title: place.name,
           location: [place.city, place.state].filter(Boolean).join(", "),
           image: place.cover_image || "/placeholder.jpg",
@@ -367,7 +370,7 @@ export function CollectionsPage() {
           <div className="relative z-0 mt-5 overflow-visible rounded-2xl border border-slate-800 bg-slate-900/80">
             {visiblePlaces.map((place) => (
               <div key={place.placeId} className={`relative flex items-center gap-4 border-b border-slate-800 p-3 last:border-0 ${openMenu === `place-${place.placeId}` ? "z-20" : "z-0"}`}>
-                <Link href={`/place/${place.slug}?from=/collections&fromLabel=Back%20to%20Collections`} className="group flex min-w-0 flex-1 items-center gap-4"><div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg"><PlacePhoto src={place.image} alt={place.title} query={`${place.title} ${place.location}`} sizes="64px" className="object-cover" /></div><div className="min-w-0"><h3 className="font-medium group-hover:text-cyan-200">{place.title}</h3><p className="mt-1 text-xs text-slate-400">{place.location}</p></div></Link>
+                <Link href={`${place.level === "city" ? "/destination" : "/place"}/${place.slug}?from=/collections&fromLabel=Back%20to%20Collections`} className="group flex min-w-0 flex-1 items-center gap-4"><div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg"><PlacePhoto src={place.image} alt={place.title} query={`${place.title} ${place.location}`} sizes="64px" className="object-cover" /></div><div className="min-w-0"><h3 className="font-medium group-hover:text-cyan-200">{place.title}</h3><p className="mt-1 text-xs text-slate-400">{place.location}</p></div></Link>
                 <button type="button" onClick={() => {
                   if (activeCollectionId === "all") setRemovalTarget(place);
                   else {

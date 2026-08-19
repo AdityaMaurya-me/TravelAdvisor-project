@@ -14,6 +14,11 @@ export type GooglePlaceDetail = GooglePlace & {
   rating?: number;
   userRatingCount?: number;
   openingHours?: string[];
+  /** Google's live opening-hours snapshot; it can vary on holidays. */
+  currentOpeningHours?: string[];
+  openNow?: boolean;
+  nextOpenTime?: string;
+  nextCloseTime?: string;
   websiteUri?: string;
   phoneNumber?: string;
   priceLevel?: string;
@@ -60,6 +65,12 @@ function toGooglePlaceDetail(place: any): GooglePlaceDetail | null {
     openingHours: Array.isArray(place?.regularOpeningHours?.weekdayDescriptions)
       ? place.regularOpeningHours.weekdayDescriptions.filter((item: unknown): item is string => typeof item === "string")
       : undefined,
+    currentOpeningHours: Array.isArray(place?.currentOpeningHours?.weekdayDescriptions)
+      ? place.currentOpeningHours.weekdayDescriptions.filter((item: unknown): item is string => typeof item === "string")
+      : undefined,
+    openNow: typeof place?.currentOpeningHours?.openNow === "boolean" ? place.currentOpeningHours.openNow : undefined,
+    nextOpenTime: typeof place?.currentOpeningHours?.nextOpenTime === "string" ? place.currentOpeningHours.nextOpenTime : undefined,
+    nextCloseTime: typeof place?.currentOpeningHours?.nextCloseTime === "string" ? place.currentOpeningHours.nextCloseTime : undefined,
     websiteUri: typeof place?.websiteUri === "string" ? place.websiteUri : undefined,
     phoneNumber: typeof place?.nationalPhoneNumber === "string" ? place.nationalPhoneNumber : undefined,
     priceLevel: typeof place?.priceLevel === "string" ? place.priceLevel : undefined,
@@ -162,7 +173,7 @@ export async function getGooglePlaceById(placeId: string): Promise<GooglePlaceDe
     const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
       headers: {
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "id,displayName,formattedAddress,location,primaryType,types,googleMapsUri,rating,userRatingCount,regularOpeningHours,photos,websiteUri,nationalPhoneNumber,priceLevel,businessStatus",
+        "X-Goog-FieldMask": "id,displayName,formattedAddress,location,primaryType,types,googleMapsUri,rating,userRatingCount,regularOpeningHours,currentOpeningHours,photos,websiteUri,nationalPhoneNumber,priceLevel,businessStatus",
       },
       cache: "no-store",
     });

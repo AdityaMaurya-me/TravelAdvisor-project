@@ -4,6 +4,11 @@ import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import {
   ArrowUp,
   Bot,
+  CalendarClock,
+  Check,
+  CircleHelp,
+  Columns2,
+  ListTree,
   LoaderCircle,
   MapPin,
   Pencil,
@@ -29,11 +34,20 @@ type AssistantCard = {
   googlePhotoAuthor?: string;
 };
 
+type ResponseMode = "shortlist" | "itinerary" | "comparison" | "place_detail" | "direct";
+type AssistantResponse = {
+  format: ResponseMode;
+  summary: string;
+  sections: Array<{ heading: string; items: string[] }>;
+  followUps: string[];
+};
+
 type Message = {
   id?: string;
   role: "user" | "assistant";
   content: string;
   cards?: AssistantCard[];
+  response_data?: AssistantResponse;
 };
 
 type Conversation = {
@@ -45,9 +59,10 @@ type Conversation = {
 
 const ACTIVE_CONVERSATION_KEY = "traveladvisor:active-ai-conversation";
 const starters = [
-  "Plan a two-day weekend in Lonavala",
+  "Plan a two-day weekend in Lonavala around opening hours",
+  "What can I visit in Mumbai after 6 PM?",
   "Which waterfalls can I explore near Pune?",
-  "Suggest a budget-friendly Goa itinerary",
+  "Suggest a budget-friendly Goa itinerary with visit durations",
   "What can I do in Mumbai in one day?",
   "Find cafés and local food in Goa",
   "Plan a scenic Mumbai to Lonavala drive",
@@ -60,6 +75,41 @@ const starters = [
 ];
 
 const STARTER_COUNT = 4;
+
+const responseLabels: Record<ResponseMode, string> = {
+  shortlist: "Shortlist",
+  itinerary: "Trip plan",
+  comparison: "Comparison",
+  place_detail: "Place briefing",
+  direct: "Answer",
+};
+
+function responseIcon(format: ResponseMode) {
+  if (format === "itinerary") return CalendarClock;
+  if (format === "comparison") return Columns2;
+  if (format === "shortlist") return ListTree;
+  if (format === "place_detail") return MapPin;
+  return CircleHelp;
+}
+
+function asResponse(value: unknown): AssistantResponse | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  const format = record.format;
+  if (format !== "shortlist" && format !== "itinerary" && format !== "comparison" && format !== "place_detail" && format !== "direct") return undefined;
+  if (typeof record.summary !== "string") return undefined;
+  const sections = Array.isArray(record.sections)
+    ? record.sections.flatMap((section) => {
+      if (!section || typeof section !== "object") return [];
+      const entry = section as Record<string, unknown>;
+      if (typeof entry.heading !== "string" || !Array.isArray(entry.items)) return [];
+      const items = entry.items.filter((item): item is string => typeof item === "string");
+      return items.length ? [{ heading: entry.heading, items }] : [];
+    })
+    : [];
+  const followUps = Array.isArray(record.followUps) ? record.followUps.filter((item): item is string => typeof item === "string") : [];
+  return { format, summary: record.summary, sections, followUps };
+}
 
 function promptsForNewChat(seed: number) {
   const start = Math.abs(seed) % starters.length;
@@ -221,6 +271,7 @@ export function TravelAssistant() {
       const result = (await response.json()) as {
         answer?: string;
         cards?: AssistantCard[];
+        response?: AssistantResponse;
         error?: string;
         historyWarning?: string;
       };
@@ -239,7 +290,7 @@ export function TravelAssistant() {
           updated_at: new Date().toISOString(),
           ai_messages: [
             ...optimistic,
-            { role: "assistant" as const, content: result.answer!, cards: result.cards ?? [] },
+            { role: "assistant" as const, content: result.answer!, cards: result.cards ?? [], response_data: asResponse(result.response) },
           ],
         };
 
@@ -267,8 +318,8 @@ export function TravelAssistant() {
   };
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-2xl lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="border-b border-border bg-background/60 p-4 lg:border-r lg:border-b-0">
+    <section className="relative h-[calc(100dvh-8rem)] min-h-[32rem] overflow-hidden rounded-3xl border border-border bg-card shadow-2xl lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <aside className="flex min-h-0 flex-col border-b border-border bg-background/60 p-4 lg:border-r lg:border-b-0">
         <button
           type="button"
           onClick={() => void newChat()}
@@ -278,7 +329,7 @@ export function TravelAssistant() {
           New chat
         </button>
 
-        <div className="mt-5 max-h-130 space-y-1 overflow-y-auto">
+        <div className="mt-5 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1">
           {conversations.length ? (
             <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[.14em] text-muted-foreground">
               Chat history
@@ -329,21 +380,21 @@ export function TravelAssistant() {
         </div>
       </aside>
 
-      <div>
-        <div className="border-b border-border bg-linear-to-br from-violet-500/12 via-card to-cyan-400/8 p-6">
-          <span className="inline-flex rounded-2xl bg-violet-400/15 p-3 text-violet-300">
-            <Sparkles className="h-6 w-6" />
+      <div className="flex min-h-0 flex-col">
+        <div className="shrink-0 border-b border-border bg-linear-to-br from-violet-500/12 via-card to-cyan-400/8 p-4 sm:p-5">
+          <span className="inline-flex rounded-xl bg-violet-400/15 p-2.5 text-violet-300">
+            <Sparkles className="h-5 w-5" />
           </span>
-          <p className="mt-3 text-sm font-medium text-violet-300">TravelAdvisor AI</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+          <p className="mt-2 text-xs font-medium text-violet-300">TravelAdvisor AI</p>
+          <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
             Plan your next trip with context.
           </h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             Your chat remains here while you explore cards and return.
           </p>
         </div>
 
-        <div className="min-h-100 space-y-4 p-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-5">
           {(!active || messages.length === 0) ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {(active ? chatPrompts[active.id] ?? promptsForNewChat(active.id.length) : promptsForNewChat(0)).map((starter) => (
@@ -362,8 +413,10 @@ export function TravelAssistant() {
             </div>
           ) : null}
 
-          {messages.map((message, index) => (
-            <div
+          {messages.map((message, index) => {
+            const structuredResponse = message.role === "assistant" ? asResponse(message.response_data) : undefined;
+            const ResponseIcon = structuredResponse ? responseIcon(structuredResponse.format) : null;
+            return <div
               key={message.id ?? `${message.role}-${index}`}
               className={message.role === "user" ? "ml-auto max-w-3xl" : "max-w-3xl"}
             >
@@ -381,7 +434,13 @@ export function TravelAssistant() {
                 >
                   {message.role === "user" ? "You" : "TravelAdvisor AI"}
                 </p>
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                {structuredResponse ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.14em] text-violet-300">{ResponseIcon ? <ResponseIcon className="h-3.5 w-3.5" /> : null}{responseLabels[structuredResponse.format]}</div>
+                    <p className="whitespace-pre-wrap font-medium text-foreground">{structuredResponse.summary}</p>
+                    {structuredResponse.sections.length ? <div className="grid gap-3 sm:grid-cols-2">{structuredResponse.sections.map((section) => <section key={section.heading} className="rounded-xl border border-border/70 bg-card p-3"><h2 className="text-sm font-semibold text-foreground">{section.heading}</h2><ul className="mt-2 space-y-2 text-sm text-muted-foreground">{section.items.map((item) => <li key={item} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />{item}</li>)}</ul></section>)}</div> : null}
+                  </div>
+                ) : <p className="whitespace-pre-wrap">{message.content}</p>}
               </article>
 
               {message.cards?.length ? (
@@ -416,8 +475,9 @@ export function TravelAssistant() {
                   ))}
                 </div>
               ) : null}
+              {structuredResponse?.followUps.length ? <div className="mt-3 flex flex-wrap gap-2">{structuredResponse.followUps.map((followUp) => <button key={followUp} type="button" onClick={() => void ask(followUp)} disabled={isLoading} className="rounded-full border border-violet-400/35 bg-violet-400/8 px-3 py-1.5 text-xs font-medium text-violet-200 transition hover:bg-violet-400/15 disabled:opacity-50">{followUp}</button>)}</div> : null}
             </div>
-          ))}
+          })}
 
           {isLoading ? (
             <div className="flex gap-2 rounded-2xl border border-border bg-background p-4 text-sm text-muted-foreground">
@@ -432,7 +492,7 @@ export function TravelAssistant() {
           ) : null}
         </div>
 
-        <form onSubmit={submit} className="border-t border-border p-4">
+        <form onSubmit={submit} className="shrink-0 border-t border-border p-3 sm:p-4">
           <div className="flex items-end gap-3 rounded-2xl border border-border bg-background p-2 focus-within:ring-2 focus-within:ring-ring">
             <textarea
               value={draft}
@@ -455,6 +515,30 @@ export function TravelAssistant() {
           <p className="mt-2 px-1 text-xs text-muted-foreground">Enter to send · Shift + Enter for a new line</p>
         </form>
       </div>
+
+      {deleteTarget ? (
+        <div
+          className="absolute inset-0 z-20 grid place-items-center bg-background/80 p-5 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isManaging) setDeleteTarget(null);
+          }}
+        >
+          <section role="dialog" aria-modal="true" aria-label="Delete AI chat" className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-card p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-5">
+              <div>
+                <h2 className="text-lg font-semibold text-red-200">Delete this chat?</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Delete <span className="font-medium text-foreground">{deleteTarget.title}</span> and every message in it? This cannot be undone.</p>
+              </div>
+              <button type="button" onClick={() => setDeleteTarget(null)} disabled={isManaging} aria-label="Close" className="rounded-lg p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-50"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setDeleteTarget(null)} disabled={isManaging} className="rounded-lg border border-border px-4 py-2 text-sm text-foreground disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={() => void remove()} disabled={isManaging} className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{isManaging ? "Deleting..." : "Delete chat"}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <AppModal
         open={Boolean(renameTarget)}
@@ -503,7 +587,7 @@ export function TravelAssistant() {
       </AppModal>
 
       <AppModal
-        open={Boolean(deleteTarget)}
+        open={false}
         onOpenChange={(open) => {
           if (!open && !isManaging) setDeleteTarget(null);
         }}

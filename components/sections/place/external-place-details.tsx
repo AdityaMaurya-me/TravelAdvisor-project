@@ -12,6 +12,7 @@ import { DetailMap } from "@/components/maps/detail-map";
 import { UniversalBackLink } from "@/components/navigation/universal-back-link";
 import { PlaceCommunityDiscussion } from "@/components/sections/place/place-community-discussion";
 import { PlaceTravelStatus } from "@/components/sections/place/place-travel-status";
+import { PlaceWeather } from "@/components/sections/place/place-weather";
 import { SaveDestinationButton } from "@/components/ui/save-destination-button";
 import { PlacePhoto } from "@/components/ui/place-photo";
 import { OpenGoogleMapsButton } from "@/components/ui/open-google-maps-button";
@@ -41,10 +42,16 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
   };
 
   const loadManagedPlace = useCallback(async () => {
-    const { data } = await supabase.from("places").select("id,slug,canonical_place_id").eq("google_place_id", place.id).maybeSingle();
+    const { data } = await supabase.from("places").select("id,slug,canonical_place_id,is_published,is_external").eq("google_place_id", place.id).maybeSingle();
     if (data?.canonical_place_id) {
       const { data: canonical } = await supabase.from("places").select("slug").eq("id", data.canonical_place_id).maybeSingle();
       if (canonical?.slug) { router.replace(`/place/${canonical.slug}`); return; }
+    }
+    // Once an admin publishes this pending Google record, keep the external
+    // Google URL stable but send it to the full TravelAdvisor detail page.
+    if (data?.is_published && !data.is_external) {
+      router.replace(`/place/${data.slug}`);
+      return;
     }
     if (data) { setManagedPlace({ id: data.id, slug: data.slug }); return; }
     // A signed-in visitor gets an internal external record automatically. This
@@ -105,6 +112,7 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
           </div>
           <aside className="space-y-5 lg:sticky lg:top-24">
             {managedPlace && <PlaceTravelStatus placeId={managedPlace.id} placeName={place.name} destinationName={place.address || "Google place"} googleMapsUrl={place.googleMapsUri} />}
+            <PlaceWeather latitude={place.latitude} longitude={place.longitude} />
             <section className="rounded-2xl border border-border bg-card p-5">
               <p className="text-sm font-medium text-cyan-300">Place information</p>
               <div className="mt-4 space-y-4 text-sm">
@@ -117,7 +125,7 @@ export function ExternalPlaceDetails({ place, backHref = "/", backLabel = "Back 
               </div>
             </section>
             <DetailMap markers={[marker]} title={place.name} mode="place" />
-            {place.openingHours?.length ? <section className="rounded-2xl border border-border bg-card p-5"><p className="text-sm font-medium text-cyan-300">Opening hours</p><ul className="mt-3 space-y-2 text-sm text-muted-foreground">{place.openingHours.map((hours) => <li key={hours}>{hours}</li>)}</ul></section> : null}
+            {(place.currentOpeningHours ?? place.openingHours)?.length ? <section className="rounded-2xl border border-border bg-card p-5"><p className="text-sm font-medium text-cyan-300">Opening hours</p>{place.openNow !== undefined ? <p className={`mt-2 text-sm font-medium ${place.openNow ? "text-emerald-500" : "text-amber-600 dark:text-amber-300"}`}>{place.openNow ? "Open now" : "Closed now"}{place.nextCloseTime ? ` · closes ${place.nextCloseTime}` : place.nextOpenTime ? ` · opens ${place.nextOpenTime}` : ""}</p> : null}<ul className="mt-3 space-y-2 text-sm text-muted-foreground">{(place.currentOpeningHours ?? place.openingHours ?? []).map((hours) => <li key={hours}>{hours}</li>)}</ul></section> : null}
             <section className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-5"><Navigation className="h-5 w-5 text-cyan-300" /><h2 className="mt-3 font-semibold">Ready to travel?</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Use the route action under this map to set this place as point B and choose your own starting point.</p></section>
           </aside>
         </div>

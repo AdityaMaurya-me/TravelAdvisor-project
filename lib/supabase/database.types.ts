@@ -79,6 +79,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          response_data: Json
         }
         Insert: {
           cards?: Json
@@ -87,6 +88,7 @@ export type Database = {
           created_at?: string
           id?: string
           role: string
+          response_data?: Json
         }
         Update: {
           cards?: Json
@@ -95,6 +97,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          response_data?: Json
         }
         Relationships: [
           {
@@ -1637,6 +1640,7 @@ export type Database = {
           created_at: string
           id: string
           is_read: boolean
+          place_id: string | null
           recipient_id: string
           title: string
           type: string
@@ -1647,6 +1651,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          place_id?: string | null
           recipient_id: string
           title: string
           type: string
@@ -1657,6 +1662,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          place_id?: string | null
           recipient_id?: string
           title?: string
           type?: string
@@ -1667,6 +1673,13 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "location_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notifications_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
             referencedColumns: ["id"]
           },
         ]

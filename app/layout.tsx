@@ -5,11 +5,32 @@ import './globals.css'
 import { AuthModalProvider } from '@/components/auth/auth-modal-provider'
 import { PageTransitionLoader } from '@/components/navigation/page-transition-loader'
 import { ThemeProvider } from '@/components/theme/theme-provider'
+import { defaultShareImage, getSiteUrl } from '@/lib/seo/site'
 
 export const metadata: Metadata = {
-  title: 'Travel Advisor - Discover Your Next Destination',
-  description: 'Search any city, country, or destination and instantly explore attractions and travel information.',
-  generator: 'v0.app',
+  metadataBase: getSiteUrl(),
+  title: {
+    default: 'TravelAdvisor | Discover your next destination',
+    template: '%s | TravelAdvisor',
+  },
+  description: 'Discover destinations, verified places, routes, and local travel ideas across India.',
+  applicationName: 'TravelAdvisor',
+  keywords: ['travel planning', 'India travel', 'destinations', 'places', 'road trips', 'travel routes'],
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    siteName: 'TravelAdvisor',
+    title: 'TravelAdvisor | Discover your next destination',
+    description: 'Discover destinations, verified places, routes, and local travel ideas across India.',
+    url: '/',
+    images: [{ url: defaultShareImage, width: 1200, height: 630, alt: 'TravelAdvisor' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TravelAdvisor | Discover your next destination',
+    description: 'Discover destinations, verified places, routes, and local travel ideas across India.',
+    images: [defaultShareImage],
+  },
   icons: {
     icon: [
       {

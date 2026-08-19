@@ -4,7 +4,10 @@ import { Compass } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-const MIN_VISIBLE_MS = 520;
+// Do not add a fake wait to navigation. The overlay appears only after the
+// user starts a real internal navigation and disappears as soon as Next has
+// rendered the destination route.
+const MIN_VISIBLE_MS = 0;
 const SAFETY_TIMEOUT_MS = 12_000;
 const ROUTE_LOADING_EVENT = "traveladvisor:route-loading";
 
@@ -21,11 +24,19 @@ export function PageTransitionLoader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const routeKey = `${pathname}?${searchParams.toString()}`;
-  const [visible, setVisible] = useState(true);
-  const startedAt = useRef(Date.now());
-  const navigating = useRef(true);
+  // Server rendering and the first browser render must both return null.
+  // Rendering the overlay only after mounting prevents hydration from seeing
+  // a stale transition state from a previous navigation.
+  const [hasMounted, setHasMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const startedAt = useRef(0);
+  const navigating = useRef(false);
   const initialRoute = useRef(true);
   const safetyTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const clearSafetyTimer = () => {
     if (safetyTimer.current !== null) window.clearTimeout(safetyTimer.current);
@@ -35,10 +46,15 @@ export function PageTransitionLoader() {
   const finish = () => {
     clearSafetyTimer();
     const delay = Math.max(0, MIN_VISIBLE_MS - (Date.now() - startedAt.current));
-    window.setTimeout(() => {
-      navigating.current = false;
-      setVisible(false);
-    }, delay);
+    if (delay) {
+      window.setTimeout(() => {
+        navigating.current = false;
+        setVisible(false);
+      }, delay);
+      return;
+    }
+    navigating.current = false;
+    setVisible(false);
   };
 
   const start = () => {
@@ -53,7 +69,6 @@ export function PageTransitionLoader() {
   };
 
   useEffect(() => {
-    const finishInitial = window.setTimeout(finish, MIN_VISIBLE_MS);
     const onRouteLoading = () => start();
     const onDocumentClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -68,7 +83,6 @@ export function PageTransitionLoader() {
     document.addEventListener("click", onDocumentClick, true);
     window.addEventListener("popstate", onPopState);
     return () => {
-      window.clearTimeout(finishInitial);
       clearSafetyTimer();
       window.removeEventListener(ROUTE_LOADING_EVENT, onRouteLoading);
       document.removeEventListener("click", onDocumentClick, true);
@@ -84,7 +98,7 @@ export function PageTransitionLoader() {
     if (navigating.current) finish();
   }, [routeKey]);
 
-  if (!visible) return null;
+  if (!hasMounted || !visible) return null;
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-background/95 px-6 text-center backdrop-blur-md" role="status" aria-live="polite" aria-label="Loading page">
       <div className="flex max-w-xs flex-col items-center gap-5">

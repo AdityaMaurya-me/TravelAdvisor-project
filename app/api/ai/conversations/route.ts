@@ -23,7 +23,7 @@ export async function GET() {
   const { data: messages, error: messageError } = conversationIds.length
     ? await (supabase as any)
       .from("ai_messages")
-      .select("id,conversation_id,role,content,cards,created_at")
+      .select("id,conversation_id,role,content,cards,response_data,created_at")
       .in("conversation_id", conversationIds)
       .order("created_at", { ascending: true })
     : { data: [], error: null };

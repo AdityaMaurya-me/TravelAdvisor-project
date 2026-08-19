@@ -23,6 +23,10 @@ export async function ensureExternalGooglePlace(googlePlaceId: string): Promise<
     p_photo_url: null,
     p_details: {
       openingHours: place.openingHours ?? [],
+      currentOpeningHours: place.currentOpeningHours ?? [],
+      openNow: place.openNow ?? null,
+      nextOpenTime: place.nextOpenTime ?? null,
+      nextCloseTime: place.nextCloseTime ?? null,
       websiteUri: place.websiteUri ?? null,
       phoneNumber: place.phoneNumber ?? null,
       priceLevel: place.priceLevel ?? null,
